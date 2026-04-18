@@ -1,0 +1,8 @@
+INFO:     Started server process [10688]
+INFO:     Waiting for application startup.
+2026-04-18 20:09:21,655 INFO app.db.session Database schema ensured
+2026-04-18 20:09:21,668 INFO app.services.rate_limit Rate limiter Redis connected
+2026-04-18 20:09:21,674 INFO app.services.realtime Realtime Redis pub/sub connected
+2026-04-18 20:09:21,676 INFO app.main Vmora API started
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)

@@ -1,0 +1,204 @@
+{
+  "en": {
+    "level_code": "A1",
+    "level_title": "A1 - Nền tảng",
+    "roadmap_title": "Lộ trình tiếng Anh A1",
+    "free_course": {
+      "title": "Tiếng Anh miễn phí cho người mới",
+      "description": "Khóa học nền tảng để người mới vào học ngay với các mẫu câu và từ vựng cơ bản.",
+      "sections": [
+        {
+          "title": "Chào hỏi và giới thiệu",
+          "description": "Làm quen với các câu chào và cách giới thiệu bản thân.",
+          "lessons": [
+            {
+              "title": "Hello và cách chào cơ bản",
+              "summary": "Học hello, hi, good morning, good evening.",
+              "content": "Từ vựng trọng tâm: hello, hi, good morning, good evening.\nMẫu câu: Hello, I am Minh. Hi, nice to meet you.\nGợi ý luyện: đọc chậm, nhấn đúng từ chào theo ngữ cảnh sáng và tối."
+            },
+            {
+              "title": "Giới thiệu tên và quốc gia",
+              "summary": "Nói tên, quê quán và ngôn ngữ đang học.",
+              "content": "Mẫu câu: My name is Lan. I am from Vietnam. I learn English every day.\nNgữ pháp: dùng be với I am.\nBài tập gợi ý: thay tên và quốc gia của chính mình."
+            },
+            {
+              "title": "Cảm ơn và xin lỗi",
+              "summary": "Dùng thank you, sorry trong tình huống hàng ngày.",
+              "content": "Từ vựng: thank you, thanks, sorry, excuse me.\nMẫu câu: Thank you for your help. Sorry, I am late.\nMục tiêu: phản xạ nhanh khi giao tiếp lịch sự."
+            }
+          ]
+        },
+        {
+          "title": "Học tập hằng ngày",
+          "description": "Tập dùng từ vựng quen thuộc trong học tập và bạn bè.",
+          "lessons": [
+            {
+              "title": "Từ vựng lớp học",
+              "summary": "Nhận biết study, listen, speak, write, read.",
+              "content": "Từ vựng trọng tâm: study, listen, speak, write, read.\nMẫu câu: We study together. Listen and repeat. Please write your name.\nGợi ý: nối động từ với hành động thực tế."
+            },
+            {
+              "title": "Nói về bạn bè",
+              "summary": "Dùng friend và các mẫu câu đơn giản để giới thiệu bạn.",
+              "content": "Từ vựng: friend, classmate, teacher.\nMẫu câu: She is my friend. He is my classmate.\nNgữ pháp: đại từ he, she."
+            },
+            {
+              "title": "Nói về hôm nay",
+              "summary": "Dùng today, now và lịch học cơ bản.",
+              "content": "Từ vựng: today, now, morning, evening.\nMẫu câu: Today I learn English. I study in the evening.\nMục tiêu: ghép thời gian với hoạt động."
+            }
+          ]
+        }
+      ]
+    },
+    "paid_course": {
+      "title": "Tiếng Anh giao tiếp mở rộng",
+      "description": "Khóa học mở rộng để luyện nghe, nói, viết câu ngắn và ôn tập theo chặng.",
+      "sections": [
+        {
+          "title": "Giao tiếp tình huống",
+          "description": "Áp dụng mẫu câu vào bối cảnh thực tế.",
+          "lessons": [
+            {
+              "title": "Hỏi và đáp thông tin cá nhân",
+              "summary": "Hỏi tên, nghề nghiệp và nơi sống.",
+              "content": "Câu hỏi: What is your name? Where do you live? What do you do?\nCâu trả lời: I live in Da Nang. I am a student.\nMục tiêu: phản xạ hỏi đáp ngắn."
+            },
+            {
+              "title": "Luyện nghe hội thoại ngắn",
+              "summary": "Nghe một đoạn ngắn rồi chọn ý chính.",
+              "content": "Hoạt động gợi ý: nghe 2 lượt, ghi từ khóa, chọn câu trả lời đúng.\nTừ khóa: hello, thanks, friend, study, today."
+            },
+            {
+              "title": "Nói chậm và rõ",
+              "summary": "Luyện phát âm mẫu câu cơ bản theo nhịp nói tự nhiên.",
+              "content": "Mẫu luyện nói: Hello, my name is Anna. I am from Vietnam. I study English today.\nYêu cầu: nói chậm, rõ và ngắt câu đúng chỗ."
+            }
+          ]
+        },
+        {
+          "title": "Củng cố và ôn tập",
+          "description": "Viết câu ngắn và tổng ôn kiến thức đã học.",
+          "lessons": [
+            {
+              "title": "Viết câu giới thiệu bản thân",
+              "summary": "Ghép từ thành đoạn giới thiệu ngắn 3 đến 4 câu.",
+              "content": "Mẫu đoạn: Hello. My name is Nam. I am from Hue. I learn English every day.\nTiêu chí: đúng trật tự từ, viết đủ chủ ngữ và động từ."
+            },
+            {
+              "title": "Ôn tập từ vựng trọng tâm",
+              "summary": "Tổng ôn nhóm từ chào hỏi, học tập, bạn bè, thời gian.",
+              "content": "Nhóm từ cần nhớ: hello, thank you, sorry, study, speak, listen, friend, today.\nGợi ý ôn luyện: flashcard, quiz 4 đáp án, gõ nghĩa."
+            },
+            {
+              "title": "Kiểm tra cuối chặng",
+              "summary": "Làm bài hỗn hợp ngắn trước khi mở chặng tiếp theo.",
+              "content": "Bài kiểm tra gồm: 1 câu nghe, 1 câu trắc nghiệm, 1 câu gõ đáp án, 1 câu viết ngắn.\nMục tiêu: kiểm tra mức nắm bài trước khi sang chặng mới."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "zh": {
+    "level_code": "HSK1",
+    "level_title": "HSK 1 - Nền tảng",
+    "roadmap_title": "Lộ trình tiếng Trung HSK 1",
+    "free_course": {
+      "title": "Tiếng Trung miễn phí cho người mới",
+      "description": "Khóa học khởi đầu để làm quen tiếng Trung, pinyin và mẫu câu rất cơ bản.",
+      "sections": [
+        {
+          "title": "Làm quen chào hỏi",
+          "description": "Học chào hỏi, giới thiệu tên và lời cảm ơn.",
+          "lessons": [
+            {
+              "title": "你好 và chào hỏi cơ bản",
+              "summary": "Làm quen 你好, 早上好, 再见.",
+              "content": "Từ vựng: 你好, 早上好, 再见.\nPinyin: ni3 hao3, zao3 shang4 hao3, zai4 jian4.\nMục tiêu: nghe và nhận ra lời chào trong tình huống đơn giản."
+            },
+            {
+              "title": "Tên của bạn là gì",
+              "summary": "Hỏi tên và tự giới thiệu bằng tiếng Trung.",
+              "content": "Mẫu câu: 你叫什么名字？ 我叫明。\nPinyin: ni3 jiao4 shen2 me ming2 zi5? wo3 jiao4 Ming.\nGợi ý luyện: thay tên thật của người học vào mẫu câu."
+            },
+            {
+              "title": "谢谢 và xin lỗi",
+              "summary": "Dùng 谢谢 và 对不起 trong giao tiếp lịch sự.",
+              "content": "Từ vựng: 谢谢, 不客气, 对不起.\nMẫu câu: 谢谢你。 对不起，我来晚了。\nMục tiêu: phản xạ các câu lịch sự cơ bản."
+            }
+          ]
+        },
+        {
+          "title": "Học tập và bạn bè",
+          "description": "Từ vựng gần gũi để nói về học tập và bạn bè.",
+          "lessons": [
+            {
+              "title": "Học tiếng Trung mỗi ngày",
+              "summary": "Dùng 学习, 中文, 今天 trong câu ngắn.",
+              "content": "Mẫu câu: 我今天学习中文。\nPinyin: wo3 jin1 tian1 xue2 xi2 zhong1 wen2.\nMục tiêu: ghép thời gian với hoạt động học."
+            },
+            {
+              "title": "Bạn bè và lớp học",
+              "summary": "Dùng 朋友 để giới thiệu mối quan hệ cơ bản.",
+              "content": "Mẫu câu: 他是我的朋友。 她是我的同学。\nTừ khóa: 朋友, 同学, 老师.\nMục tiêu: nhận diện đại từ và danh từ quen thuộc."
+            },
+            {
+              "title": "Nghe và nói chậm",
+              "summary": "Luyện 听 và 说 trong hội thoại rất ngắn.",
+              "content": "Mẫu câu: 请听。 请慢慢说。\nPinyin: qing3 ting1. qing3 man4 man4 shuo1.\nMục tiêu: dùng câu yêu cầu đơn giản khi học."
+            }
+          ]
+        }
+      ]
+    },
+    "paid_course": {
+      "title": "Tiếng Trung HSK 1 mở rộng",
+      "description": "Khóa học mở rộng để luyện phản xạ nghe nói, đọc pinyin và ôn tập theo chặng.",
+      "sections": [
+        {
+          "title": "Giao tiếp ngắn",
+          "description": "Luyện hỏi đáp trong hội thoại quen thuộc.",
+          "lessons": [
+            {
+              "title": "Hỏi đáp thông tin đơn giản",
+              "summary": "Hỏi tên, quốc tịch và ngôn ngữ đang học.",
+              "content": "Mẫu câu: 你是哪国人？ 你学什么？\nCâu trả lời: 我是越南人。 我学中文。\nMục tiêu: phản xạ hỏi đáp 1 đến 2 câu."
+            },
+            {
+              "title": "Luyện nghe pinyin cơ bản",
+              "summary": "Nghe pinyin rồi nối với từ đúng.",
+              "content": "Tập trung vào: ni3 hao3, xie4 xie5, ming2 zi5, peng2 you5.\nCách học: nghe, nhìn đáp án, lặp lại thành tiếng."
+            },
+            {
+              "title": "Luyện nói câu hoàn chỉnh",
+              "summary": "Ghép từ thành câu ngắn tự nhiên hơn.",
+              "content": "Mẫu câu: 你好，我叫安。 我今天学习中文。 他是我的朋友。\nYêu cầu: nói chậm, rõ, đúng pinyin."
+            }
+          ]
+        },
+        {
+          "title": "Ôn tập và kiểm tra",
+          "description": "Củng cố từ vựng trọng tâm và làm bài cuối chặng.",
+          "lessons": [
+            {
+              "title": "Ôn tập từ vựng HSK 1 cơ bản",
+              "summary": "Tổng ôn nhóm từ chào hỏi, học tập, bạn bè, thời gian.",
+              "content": "Nhóm từ trọng tâm: 你好, 谢谢, 名字, 学习, 中文, 朋友, 今天, 听, 说, 再见.\nGợi ý ôn luyện: flashcard, matching, typing."
+            },
+            {
+              "title": "Viết câu ngắn với pinyin",
+              "summary": "Viết câu ngắn và đọc lại theo pinyin.",
+              "content": "Mẫu câu: 我叫兰。 我今天学习中文。\nYêu cầu: viết đúng chữ Hán cơ bản hoặc gõ pinyin đúng."
+            },
+            {
+              "title": "Bài kiểm tra cuối chặng",
+              "summary": "Làm bài nghe, đọc và gõ đáp án trước khi mở tiếp.",
+              "content": "Bài kiểm tra gồm: 1 câu nghe pinyin, 1 câu chọn nghĩa đúng, 1 câu nối từ, 1 câu gõ đáp án.\nMục tiêu: xác nhận người học đủ nền tảng để sang bài sau."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
