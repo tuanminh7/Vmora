@@ -102,6 +102,7 @@ import {
 import { ADMIN_TEMPLATES, buildTemplatePayload } from "../adminTemplates";
 
 const TOKEN_STORAGE_KEY = "vmora_access_token";
+const PROFILE_AVATAR_STORAGE_PREFIX = "vmora_profile_avatar_";
 
 function getStoredToken() {
   return window.localStorage.getItem(TOKEN_STORAGE_KEY) ?? "";
@@ -113,6 +114,25 @@ function saveStoredToken(token) {
 
 function clearStoredToken() {
   window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+}
+
+function getProfileAvatarStorageKey(userId) {
+  return `${PROFILE_AVATAR_STORAGE_PREFIX}${userId}`;
+}
+
+function getStoredProfileAvatar(userId) {
+  if (!userId) return "";
+  return window.localStorage.getItem(getProfileAvatarStorageKey(userId)) ?? "";
+}
+
+function saveStoredProfileAvatar(userId, value) {
+  if (!userId) return;
+  window.localStorage.setItem(getProfileAvatarStorageKey(userId), value);
+}
+
+function clearStoredProfileAvatar(userId) {
+  if (!userId) return;
+  window.localStorage.removeItem(getProfileAvatarStorageKey(userId));
 }
 
 function getAdminItemId(item) {
@@ -358,13 +378,15 @@ export default function useVmoraApp() {
     }
     getMe(token)
       .then((payload) => {
-        setUser(payload);
+        const localAvatar = getStoredProfileAvatar(payload.id);
+        const avatarUrl = localAvatar || payload.avatar_url || "";
+        setUser({ ...payload, avatar_url: avatarUrl });
         setSelectedLanguage(payload.learning_language_code ?? "");
         setProfileForm({
           fullName: payload.full_name ?? "",
           phoneNumber: payload.phone_number ?? "",
           address: payload.address ?? "",
-          avatarUrl: payload.avatar_url ?? "",
+          avatarUrl,
         });
       })
       .catch(() => {
@@ -372,6 +394,17 @@ export default function useVmoraApp() {
         setToken("");
       });
   }, [token]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    if (profileForm.avatarUrl?.startsWith("data:")) {
+      saveStoredProfileAvatar(user.id, profileForm.avatarUrl);
+      return;
+    }
+    if (!profileForm.avatarUrl?.trim()) {
+      clearStoredProfileAvatar(user.id);
+    }
+  }, [profileForm.avatarUrl, user?.id]);
 
   useEffect(() => {
     if (!languageCode) return;
@@ -877,13 +910,25 @@ export default function useVmoraApp() {
 
   async function saveProfile(event) {
     event.preventDefault();
+    const localAvatar = profileForm.avatarUrl?.startsWith("data:") ? profileForm.avatarUrl : "";
+    const remoteAvatar =
+      profileForm.avatarUrl && !profileForm.avatarUrl.startsWith("data:")
+        ? profileForm.avatarUrl
+        : user?.avatar_url && !user.avatar_url.startsWith("data:")
+          ? user.avatar_url
+          : null;
     const payload = await updateProfile(token, {
       full_name: profileForm.fullName || null,
       phone_number: profileForm.phoneNumber || null,
       address: profileForm.address || null,
-      avatar_url: profileForm.avatarUrl || null,
+      avatar_url: remoteAvatar || null,
     });
-    setUser(payload);
+    if (localAvatar) {
+      saveStoredProfileAvatar(payload.id, localAvatar);
+    } else if (!remoteAvatar) {
+      clearStoredProfileAvatar(payload.id);
+    }
+    setUser({ ...payload, avatar_url: localAvatar || payload.avatar_url || "" });
     setMessage("Đã lưu hồ sơ");
   }
 

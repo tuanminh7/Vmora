@@ -1,5 +1,17 @@
 import { Title } from "./ui";
 
+function getProfileInitials(fullName, email) {
+  const source = (fullName || email || "Vmora").trim();
+  const words = source.split(/\s+/).filter(Boolean);
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+  return words
+    .slice(0, 2)
+    .map((item) => item[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 function getAuthTitle(authMode, passwordResetStep) {
   if (authMode === "register") return "Đăng ký";
   if (authMode === "forgot") {
@@ -24,6 +36,24 @@ export default function AccountSection({
   profileForm,
   user,
 }) {
+  const profileName = profileForm.fullName?.trim() || user?.full_name || user?.email?.split("@")[0] || "Vmora User";
+  const profileAvatar = profileForm.avatarUrl?.trim() || user?.avatar_url || "";
+  const profileInitials = getProfileInitials(profileName, user?.email ?? "");
+  const profilePublicId = user?.public_user_id ?? String(user?.id ?? "").padStart(5, "0");
+
+  function handleAvatarUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        onProfileFieldChange("avatarUrl", reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
   return (
     <section className="flow-card">
       <Title eyebrow="Tài khoản" title={user ? "Profile" : "Đăng nhập / Đăng ký"} />
@@ -152,38 +182,80 @@ export default function AccountSection({
       ) : (
         <div className="profile-layout">
           <form className="profile-card" onSubmit={onSaveProfile}>
-            <label className="field">
-              <span>Avatar</span>
-              <input onChange={(event) => onProfileFieldChange("avatarUrl", event.target.value)} value={profileForm.avatarUrl} />
-            </label>
-            <label className="field">
-              <span>ID</span>
-              <input disabled value={user.public_user_id ?? String(user.id).padStart(5, "0")} />
-            </label>
-            <p className="form-message success">Dùng ID này khi cần gửi cho admin kiểm tra tài khoản.</p>
-            <label className="field">
-              <span>Gmail</span>
-              <input disabled value={user.email} />
-            </label>
-            <label className="field">
-              <span>Name</span>
-              <input onChange={(event) => onProfileFieldChange("fullName", event.target.value)} value={profileForm.fullName} />
-            </label>
-            <label className="field">
-              <span>SĐT</span>
-              <input onChange={(event) => onProfileFieldChange("phoneNumber", event.target.value)} value={profileForm.phoneNumber} />
-            </label>
-            <label className="field">
-              <span>Địa chỉ</span>
-              <input onChange={(event) => onProfileFieldChange("address", event.target.value)} value={profileForm.address} />
-            </label>
-            <button className="primary-button" type="submit">
-              Lưu
-            </button>
-            <button className="ghost-button" onClick={onLogout} type="button">
-              Đăng xuất
-            </button>
+            <div className="profile-form-head">
+              <div>
+                <p className="eyebrow">Hồ sơ cá nhân</p>
+                <h3>Thông tin của bạn</h3>
+              </div>
+              <p className="profile-form-copy">Tải ảnh từ máy lên, cập nhật tên và các thông tin liên hệ ngay tại đây.</p>
+            </div>
+
+            <div className="profile-avatar-field">
+              <div className="profile-avatar-upload">
+                {profileAvatar ? (
+                  <img alt={profileName} className="profile-avatar-preview" src={profileAvatar} />
+                ) : (
+                  <div className="profile-avatar-fallback">{profileInitials}</div>
+                )}
+              </div>
+
+              <div className="profile-avatar-actions">
+                <label className="primary-button profile-upload-button" htmlFor="profile-avatar-upload">
+                  Chọn ảnh từ máy
+                </label>
+                <input
+                  accept="image/*"
+                  className="profile-avatar-input"
+                  id="profile-avatar-upload"
+                  onChange={handleAvatarUpload}
+                  type="file"
+                />
+                <p>Ảnh avatar sẽ hiển thị theo khuôn tròn ở hồ sơ của bạn.</p>
+              </div>
+            </div>
+
+            <div className="profile-form-grid">
+              <label className="field">
+                <span>Gmail</span>
+                <input disabled value={user.email} />
+              </label>
+              <label className="field">
+                <span>Tên hiển thị</span>
+                <input onChange={(event) => onProfileFieldChange("fullName", event.target.value)} value={profileForm.fullName} />
+              </label>
+              <label className="field">
+                <span>SĐT</span>
+                <input onChange={(event) => onProfileFieldChange("phoneNumber", event.target.value)} value={profileForm.phoneNumber} />
+              </label>
+              <label className="field profile-form-grid-wide">
+                <span>Địa chỉ</span>
+                <input onChange={(event) => onProfileFieldChange("address", event.target.value)} value={profileForm.address} />
+              </label>
+            </div>
+
+            <div className="profile-form-actions">
+              <button className="primary-button" type="submit">
+                Lưu
+              </button>
+              <button className="ghost-button" onClick={onLogout} type="button">
+                Đăng xuất
+              </button>
+            </div>
           </form>
+
+          <aside className="profile-preview-card">
+            <p className="eyebrow">Profile của bạn</p>
+            <div className="profile-preview-frame">
+              {profileAvatar ? (
+                <img alt={profileName} className="profile-preview-avatar" src={profileAvatar} />
+              ) : (
+                <div className="profile-preview-fallback">{profileInitials}</div>
+              )}
+            </div>
+            <h3>{profileName}</h3>
+            <p className="profile-preview-id">ID: {profilePublicId}</p>
+            <p className="profile-preview-meta">{user.email}</p>
+          </aside>
         </div>
       )}
     </section>

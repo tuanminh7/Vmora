@@ -18,6 +18,25 @@ const AREA_COLLECTIONS = {
   payments: ["packages"],
 };
 
+const METRIC_LABELS = {
+  user_count: "Người dùng",
+  course_count: "Khóa học",
+  lesson_count: "Bài học",
+  package_count: "Gói học",
+  payment_count: "Thanh toán",
+  open_ticket_count: "Ticket mở",
+  report_count: "Báo cáo",
+};
+
+const DASHBOARD_FLOW = [
+  { key: "users", label: "Người dùng", metricKey: "user_count", area: "users" },
+  { key: "courses", label: "Khóa học", metricKey: "course_count", area: "learning-content" },
+  { key: "lessons", label: "Bài học", metricKey: "lesson_count", area: "learning-content" },
+  { key: "packages", label: "Gói học", metricKey: "package_count", area: "payments" },
+  { key: "payments", label: "Thanh toán", metricKey: "payment_count", area: "payments" },
+  { key: "support", label: "Hỗ trợ", metricKey: "open_ticket_count", area: "support" },
+];
+
 const numberFormatter = new Intl.NumberFormat("vi-VN");
 
 function safeJsonParse(value, fallback = null) {
@@ -34,6 +53,15 @@ function formatCount(value) {
 
 function formatMoney(value) {
   return `${numberFormatter.format(value ?? 0)}đ`;
+}
+
+function clampPercent(value, maxValue) {
+  if (!maxValue) return 0;
+  return Math.max(4, Math.min(100, Math.round((value / maxValue) * 100)));
+}
+
+function getMetricValue(metrics, key) {
+  return Number(metrics?.[key] ?? 0);
 }
 
 function formatDate(value) {
@@ -98,7 +126,7 @@ function MetricGrid({ metrics = {} }) {
     <div className="admin-metric-grid">
       {entries.map(([key, value]) => (
         <article className="admin-metric-card" key={key}>
-          <span>{key.replaceAll("_", " ")}</span>
+          <span>{METRIC_LABELS[key] ?? key.replaceAll("_", " ")}</span>
           <strong>{formatCount(value)}</strong>
         </article>
       ))}
@@ -420,29 +448,234 @@ export default function AdminSection({
   }
 
   function renderDashboard() {
+    const metrics = adminWorkspace.metrics ?? {};
+    const users = adminWorkspace.quick_users ?? [];
+    const tickets = adminWorkspace.quick_tickets ?? [];
+    const payments = adminWorkspace.quick_payments ?? [];
+    const contentCount =
+      getMetricValue(metrics, "course_count") +
+      getMetricValue(metrics, "lesson_count") +
+      getMetricValue(metrics, "package_count");
+    const healthTotal =
+      getMetricValue(metrics, "payment_count") +
+      getMetricValue(metrics, "open_ticket_count") +
+      getMetricValue(metrics, "report_count");
+    const healthStable = Math.max(
+      getMetricValue(metrics, "payment_count") - getMetricValue(metrics, "open_ticket_count") - getMetricValue(metrics, "report_count"),
+      0,
+    );
+    const ringTotal = Math.max(healthTotal, 1);
+    const ticketPercent = Math.round((getMetricValue(metrics, "open_ticket_count") / ringTotal) * 100);
+    const reportPercent = Math.round((getMetricValue(metrics, "report_count") / ringTotal) * 100);
+    const stablePercent = Math.max(0, 100 - ticketPercent - reportPercent);
+    const chartItems = [
+      { key: "users", label: "Người dùng", value: getMetricValue(metrics, "user_count") },
+      { key: "content", label: "Học liệu", value: contentCount },
+      { key: "payments", label: "Thanh toán", value: getMetricValue(metrics, "payment_count") },
+      { key: "ops", label: "Vận hành", value: getMetricValue(metrics, "open_ticket_count") + getMetricValue(metrics, "report_count") },
+    ];
+    const maxChartValue = Math.max(...chartItems.map((item) => item.value), 1);
+    const summaryCards = [
+      {
+        key: "users",
+        eyebrow: "Tăng trưởng",
+        title: "Tài khoản đang quản lý",
+        value: getMetricValue(metrics, "user_count"),
+        note: `${formatCount(users.length)} người dùng mới nhất cần theo dõi`,
+      },
+      {
+        key: "content",
+        eyebrow: "Học liệu",
+        title: "Khối nội dung đang mở",
+        value: contentCount,
+        note: `${formatCount(getMetricValue(metrics, "course_count"))} khóa · ${formatCount(getMetricValue(metrics, "lesson_count"))} bài`,
+      },
+      {
+        key: "ops",
+        eyebrow: "Cảnh báo",
+        title: "Ticket và báo cáo mở",
+        value: getMetricValue(metrics, "open_ticket_count") + getMetricValue(metrics, "report_count"),
+        note: `${formatCount(getMetricValue(metrics, "open_ticket_count"))} ticket · ${formatCount(getMetricValue(metrics, "report_count"))} báo cáo`,
+      },
+    ];
+
     return (
       <div className="admin-panel-stack">
-        <MetricGrid metrics={adminWorkspace.metrics} />
+        <section className="admin-landing-hero">
+          <div className="admin-landing-copy">
+            <p className="eyebrow">Admin landing</p>
+            <h3>Phòng điều phối hệ thống Vmora</h3>
+            <p className="admin-landing-text">
+              Số liệu được gom theo luồng vận hành thật: người dùng đi vào học liệu, kích hoạt gói học, phát sinh thanh toán và quay lại ticket/support khi cần.
+            </p>
+            <div className="admin-landing-actions">
+              <button className="primary-button admin-hero-button" onClick={() => chooseArea("users")} type="button">
+                Xem người dùng
+              </button>
+              <button className="ghost-button mini-button" onClick={onSendBroadcast} type="button">
+                Gửi thông báo hệ thống
+              </button>
+            </div>
+          </div>
+          <div className="admin-landing-highlight">
+            {summaryCards.map((item) => (
+              <article className="admin-summary-card" key={item.key}>
+                <p className="eyebrow">{item.eyebrow}</p>
+                <strong>{formatCount(item.value)}</strong>
+                <h4>{item.title}</h4>
+                <p>{item.note}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <MetricGrid metrics={metrics} />
+
+        <div className="admin-dashboard-grid">
+          <article className="admin-action-card admin-diagram-card">
+            <div className="admin-content-head">
+              <div>
+                <p className="eyebrow">Sơ đồ vận hành</p>
+                <h3>Luồng số liệu theo hệ thống</h3>
+              </div>
+              <span>{formatCount(DASHBOARD_FLOW.length)} nút</span>
+            </div>
+            <div className="admin-flow-diagram">
+              {DASHBOARD_FLOW.map((item, index) => (
+                <button
+                  className="admin-flow-node"
+                  key={item.key}
+                  onClick={() => chooseArea(item.area)}
+                  type="button"
+                >
+                  <small>{index + 1}</small>
+                  <strong>{item.label}</strong>
+                  <span>{formatCount(getMetricValue(metrics, item.metricKey))}</span>
+                </button>
+              ))}
+            </div>
+            <div className="admin-flow-caption">
+              <span>Người dùng</span>
+              <span>Học liệu</span>
+              <span>Gói học</span>
+              <span>Thanh toán</span>
+              <span>Hỗ trợ</span>
+            </div>
+          </article>
+
+          <article className="admin-action-card admin-diagram-card">
+            <div className="admin-content-head">
+              <div>
+                <p className="eyebrow">Biểu đồ tải</p>
+                <h3>Phân bổ nhóm số liệu</h3>
+              </div>
+              <span>{formatCount(chartItems.length)} cụm</span>
+            </div>
+            <div className="admin-bar-chart">
+              {chartItems.map((item) => (
+                <div className="admin-bar-row" key={item.key}>
+                  <div className="admin-bar-meta">
+                    <strong>{item.label}</strong>
+                    <span>{formatCount(item.value)}</span>
+                  </div>
+                  <div className="admin-bar-track">
+                    <div
+                      className={`admin-bar-fill admin-bar-fill-${item.key}`}
+                      style={{ width: `${clampPercent(item.value, maxChartValue)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="admin-action-card admin-diagram-card admin-health-card">
+            <div className="admin-content-head">
+              <div>
+                <p className="eyebrow">Vòng cảnh báo</p>
+                <h3>Sức khỏe vận hành</h3>
+              </div>
+              <span>{formatCount(healthTotal)}</span>
+            </div>
+            <div className="admin-health-ring-wrap">
+              <div
+                className="admin-health-ring"
+                style={{
+                  background: `conic-gradient(var(--green) 0% ${stablePercent}%, var(--amber) ${stablePercent}% ${stablePercent + ticketPercent}%, var(--accent-2) ${stablePercent + ticketPercent}% 100%)`,
+                }}
+              >
+                <div className="admin-health-ring-core">
+                  <strong>{formatCount(healthStable)}</strong>
+                  <span>ổn định</span>
+                </div>
+              </div>
+              <div className="admin-health-legend">
+                <p><span className="admin-legend-dot admin-legend-stable" /> Ổn định: {formatCount(healthStable)}</p>
+                <p><span className="admin-legend-dot admin-legend-ticket" /> Ticket mở: {formatCount(getMetricValue(metrics, "open_ticket_count"))}</p>
+                <p><span className="admin-legend-dot admin-legend-report" /> Báo cáo chờ xử lý: {formatCount(getMetricValue(metrics, "report_count"))}</p>
+              </div>
+            </div>
+          </article>
+        </div>
+
         <div className="admin-overview-grid">
           <article className="admin-action-card">
-            <div className="admin-action-card-head"><p className="eyebrow">Người dùng mới</p><span>{formatCount(adminWorkspace.quick_users?.length)}</span></div>
-            {(adminWorkspace.quick_users ?? []).map((item) => (
+            <div className="admin-action-card-head">
+              <div>
+                <p className="eyebrow">Người dùng mới</p>
+                <h3>Danh sách cần theo dõi</h3>
+              </div>
+              <span>{formatCount(users.length)}</span>
+            </div>
+            {users.map((item) => (
               <button className="admin-list-button" key={item.id} onClick={() => onSelectUser(item.id)} type="button">
-                <div><strong>{item.full_name || item.email}</strong><small>{item.email}</small></div>
-                <span className="admin-status">{item.estimated_points} điểm</span>
+                <div>
+                  <strong>{item.full_name || item.email}</strong>
+                  <small>{item.email}</small>
+                </div>
+                <span className="admin-status">{formatCount(item.estimated_points)} điểm</span>
               </button>
             ))}
           </article>
+
           <article className="admin-action-card">
-            <div className="admin-action-card-head"><p className="eyebrow">Ticket gần đây</p><span>{formatCount(adminWorkspace.quick_tickets?.length)}</span></div>
-            {(adminWorkspace.quick_tickets ?? []).map((item) => (
-              <div className="admin-list-button" key={item.id}><div><strong>{item.title}</strong><small>{formatDate(item.updated_at)}</small></div><span className="admin-status">{item.status}</span></div>
+            <div className="admin-action-card-head">
+              <div>
+                <p className="eyebrow">Ticket gần đây</p>
+                <h3>Vấn đề đang chờ phản hồi</h3>
+              </div>
+              <span>{formatCount(tickets.length)}</span>
+            </div>
+            {tickets.map((item) => (
+              <div className="admin-list-button" key={item.id}>
+                <div>
+                  <strong>{item.title}</strong>
+                  <small>{formatDate(item.updated_at)}</small>
+                </div>
+                <span className="admin-status">{item.status}</span>
+              </div>
             ))}
           </article>
+
           <article className="admin-action-card admin-highlight-card">
-            <p className="eyebrow">Thông báo và hỗ trợ</p>
-            <h3>Gửi thông báo toàn hệ thống</h3>
-            <button className="primary-button admin-hero-button" onClick={onSendBroadcast} type="button">Gửi</button>
+            <div className="admin-action-card-head">
+              <div>
+                <p className="eyebrow">Thanh toán mới</p>
+                <h3>Đơn hàng gần nhất</h3>
+              </div>
+              <span>{formatCount(payments.length)}</span>
+            </div>
+            <div className="admin-list-stack">
+              {payments.map((item) => (
+                <div className="admin-list-button" key={item.id}>
+                  <div>
+                    <strong>{item.order_id}</strong>
+                    <small>{formatDate(item.created_at)}</small>
+                  </div>
+                  <span className="admin-status">{formatMoney(item.amount_vnd)}</span>
+                </div>
+              ))}
+            </div>
           </article>
         </div>
       </div>
@@ -800,8 +1033,8 @@ export default function AdminSection({
         <div className="admin-content-panel">
           <div className="admin-content-head">
             <div>
-              <p className="eyebrow">Thong bao</p>
-              <h3>Gui hop thu / qua theo user ID</h3>
+              <p className="eyebrow">Thông báo</p>
+              <h3>Gửi thông báo & Quà tặng</h3>
             </div>
           </div>
           <form className="admin-form-grid" onSubmit={submitNotificationForm}>
@@ -861,15 +1094,13 @@ export default function AdminSection({
                 </select>
               </label>
             ) : null}
-            {notificationForm.targetType === "user" ? (
-              <p className="empty-copy">Nhap user ID dang 5 chu so. He thong se tu gui dung toi user do.</p>
-            ) : null}
+
             <button className="primary-button admin-hero-button" type="submit">
               Gui
             </button>
           </form>
           <button className="ghost-button mini-button" onClick={onSendBroadcast} type="button">
-            Gui mau nhanh toan he thong
+            Gửi thông báo hệ thống
           </button>
           <div className="admin-list-stack">
             {(adminUsers ?? []).slice(0, 12).map((item) => (
@@ -959,9 +1190,8 @@ export default function AdminSection({
   return (
     <section className="flow-card admin-shell">
       <div className="section-heading">
-        <p className="eyebrow">Admin theo sơ đồ</p>
+        <p className="eyebrow">Trình quản trị</p>
         <h2>{activeArea.label}</h2>
-        <p>{activeArea.hint}</p>
       </div>
 
       <div className="practice-nav admin-tabs admin-area-tabs">

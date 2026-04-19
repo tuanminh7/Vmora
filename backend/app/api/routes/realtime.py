@@ -72,17 +72,18 @@ async def realtime_ws(websocket: WebSocket):
 
     await manager.connect(user_id=user.id, websocket=websocket)
     metrics.realtime_accepted()
-    await websocket.send_json(
-        {
-            "event": "system:connected",
-            "payload": {
-                "user_id": user.id,
-                "learning_language_code": user.learning_language_code,
-            },
-        }
-    )
 
     try:
+        await websocket.send_json(
+            {
+                "event": "system:connected",
+                "payload": {
+                    "user_id": user.id,
+                    "learning_language_code": user.learning_language_code,
+                },
+            }
+        )
+
         while True:
             raw_message = await asyncio.wait_for(
                 websocket.receive_text(),

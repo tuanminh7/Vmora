@@ -1,48 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import AccountSection from "./components/AccountSection";
 import AdminSection from "./components/AdminSection";
 import ExamSection from "./components/ExamSection";
 import PracticeSection from "./components/PracticeSection";
 import useVmoraApp from "./hooks/useVmoraApp";
-
-const ROOT_MENU = [
-  ["/bang-vang-server", "Bảng Vàng server"],
-  ["/khoa-hoc", "Khóa học"],
-  ["/lien-he", "Liên hệ"],
-  ["/hop-thu", "Hộp thư"],
-  ["/profile", "Profile"],
-  ["/cai-dat", "Cài đặt"],
-];
-
-const COURSE_MENU = [
-  ["/bang-xep-hang", "Bảng xếp hạng"],
-  ["/hoc-tap", "Học tập"],
-  ["/giai-dau", "Giải đấu"],
-  ["/tien-do", "Tiến độ"],
-  ["/nhom-chat", "Nhóm chat"],
-  ["/lo-trinh", "Lộ trình"],
-];
-
-const LEARNING_MENU = [
-  ["/pet", "Pet"],
-  ["/thi", "THI"],
-  ["/so-tay", "Sổ tay"],
-  ["/kho-tu-vung", "Kho từ vựng"],
-  ["/on-luyen", "Ôn luyện"],
-];
-const STUDY_HUB_ITEMS = [
-  ["/lo-trinh", "Lộ trình", "Chọn chặng, chọn bài, học bài và mở bài tiếp theo."],
-  ["/tien-do", "Tiến độ", "Theo dõi phần trăm hoàn thành của từng khóa học."],
-  ["/giai-dau", "Giải đấu", "Đăng ký, làm bài thi hỗn hợp và xem xếp hạng."],
-  ["/nhom-chat", "Nhóm chat", "Kết nối bạn bè, vào nhóm riêng và chat tổng."],
-  ["/bang-xep-hang", "Bảng xếp hạng", "Xem vị trí học tập của mình trong hệ thống."],
-  ["/pet", "Pet", "Đặt tên, cấu hình và tương tác với pet."],
-  ["/thi", "THI", "Vào kho đề thi theo chứng chỉ."],
-  ["/so-tay", "Sổ tay", "Lưu bài, tạo nhắc nhở và duy trì chuỗi học."],
-  ["/kho-tu-vung", "Kho từ vựng", "Chọn kho từ và đẩy vào ôn luyện."],
-  ["/on-luyen", "Ôn luyện", "Luyện từ vựng, viết, nghe, nói và ngữ pháp."],
-];
 
 const PRACTICE_SKILLS = [
   { key: "vocabulary", label: "Luyện từ vựng", path: "/on-luyen/luyen-tu-vung" },
@@ -56,9 +19,126 @@ const ROADMAP_TESTS = [
   ["giao-tiep", "Test giao tiếp", "Kiểm tra phản xạ nghe, nói và tình huống hằng ngày."],
   ["chung-chi", "Test chứng chỉ", "Kiểm tra mục tiêu luyện thi hoặc chứng chỉ."],
 ];
-const PRACTICE_MENU = PRACTICE_SKILLS.map((item) => [item.path, item.label]);
 const PRACTICE_PATHS = PRACTICE_SKILLS.map((item) => item.path);
 const DEFAULT_PRACTICE_PATH = PRACTICE_SKILLS[0].path;
+const COURSE_HUB_ITEMS = [
+  {
+    path: "/bang-xep-hang",
+    icon: "📊",
+    title: "Bảng xếp hạng",
+    description: "Xem vị trí học tập và điểm số của bạn trong cộng đồng.",
+    tone: "blue",
+  },
+  {
+    path: "/giai-dau",
+    icon: "🏆",
+    title: "Giải đấu",
+    description: "Vào các cuộc thi theo mùa, làm bài và leo bảng thành tích.",
+    tone: "gold",
+  },
+  {
+    path: "/tien-do",
+    icon: "📈",
+    title: "Tiến độ",
+    description: "Theo dõi phần trăm hoàn thành của từng khóa học.",
+    tone: "green",
+  },
+  {
+    path: "/nhom-chat",
+    icon: "💬",
+    title: "Nhóm chat",
+    description: "Kết nối bạn bè, nhóm riêng và cộng đồng học tập.",
+    tone: "cyan",
+  },
+  {
+    path: "/lo-trinh",
+    icon: "🚦",
+    title: "Lộ trình",
+    description: "Chọn chặng, mở bài học và đi tiếp từng bước rõ ràng.",
+    tone: "pink",
+  },
+  {
+    path: "/hoc-tap",
+    icon: "⚡",
+    title: "Học tập",
+    description: "Vào khu học sâu gồm pet, thi, sổ tay, từ vựng và ôn luyện.",
+    tone: "violet",
+  },
+];
+const LEARNING_HUB_ITEMS = [
+  {
+    path: "/pet",
+    icon: "🐾",
+    title: "Pet",
+    description: "Cấu hình và tương tác với pet đồng hành.",
+    tone: "pink",
+  },
+  {
+    path: "/thi",
+    icon: "📝",
+    title: "Thi",
+    description: "Vào kho đề thi theo chứng chỉ và cấp độ.",
+    tone: "gold",
+  },
+  {
+    path: "/so-tay",
+    icon: "📓",
+    title: "Sổ tay",
+    description: "Lưu ghi chú, nhắc nhở và chuỗi học.",
+    tone: "green",
+  },
+  {
+    path: "/kho-tu-vung",
+    icon: "🔤",
+    title: "Kho từ vựng",
+    description: "Chọn kho từ, quản lý từ vựng và đưa vào ôn luyện.",
+    tone: "blue",
+  },
+  {
+    path: "/on-luyen",
+    icon: "🎯",
+    title: "Ôn luyện",
+    description: "Chọn kỹ năng luyện từ vựng, viết, nghe, nói và ngữ pháp.",
+    tone: "violet",
+  },
+];
+const PRACTICE_HUB_ITEMS = [
+  {
+    path: "/on-luyen/luyen-tu-vung",
+    icon: "🔠",
+    title: "Luyện từ vựng",
+    description: "Ôn flashcard, chọn đáp án và ghi nhớ từ theo cấp độ.",
+    tone: "blue",
+  },
+  {
+    path: "/on-luyen/luyen-viet",
+    icon: "✍️",
+    title: "Luyện viết",
+    description: "Rèn câu trả lời, đoạn văn và phản xạ viết.",
+    tone: "pink",
+  },
+  {
+    path: "/on-luyen/luyen-nghe",
+    icon: "🎧",
+    title: "Luyện nghe",
+    description: "Nghe nội dung, chọn đáp án và kiểm tra khả năng hiểu.",
+    tone: "cyan",
+  },
+  {
+    path: "/on-luyen/luyen-noi",
+    icon: "🎙️",
+    title: "Luyện nói",
+    description: "Luyện phản xạ nói và phát âm qua bài thực hành.",
+    tone: "gold",
+  },
+  {
+    path: "/on-luyen/ngu-phap",
+    icon: "🧩",
+    title: "Ngữ pháp",
+    description: "Ôn cấu trúc câu, quy tắc và bài tập ngữ pháp.",
+    tone: "green",
+  },
+];
 const LANGUAGE_LABELS = {
   de: "T.Đức",
   en: "T.ANH",
@@ -66,6 +146,20 @@ const LANGUAGE_LABELS = {
   zh: "T.Trung",
   ko: "T.HÀN",
 };
+
+const GOLDEN_BOARD_BADGES = [
+  { image: "/images/cupvang.png", label: "Hạng 1", tone: "gold" },
+  { image: "/images/cupbac-cutout.png", label: "Hạng 2", tone: "silver" },
+  { image: "/images/cupdong-cutout.png", label: "Hạng 3", tone: "bronze" },
+  { image: "/images/ve4-cutout.png", label: "Hạng 4", tone: "ticket" },
+  { image: "/images/ve5-cutout.png", label: "Hạng 5", tone: "ticket" },
+  { image: "/images/ve6-cutout.png", label: "Hạng 6", tone: "ticket" },
+];
+const RANKING_SPOTLIGHT_IMAGES = [
+  { rank: 1, image: "/images/1.jpg", label: "Top 1" },
+  { rank: 2, image: "/images/2.jpg", label: "Top 2" },
+  { rank: 3, image: "/images/3.jpg", label: "Top 3" },
+];
 
 const MAIL_NODES = [
   "Thông báo từ admin, bạn bè",
@@ -82,88 +176,312 @@ const PET_NODES = ["Tự đặt tên", "Tự cấu hình", "Voice với pet", "L
 const NOTE_NODES = ["Lưu từ vựng hay bài làm", "Lịch / nhắc nhở", "Duy trì chuỗi"];
 const BANK_NODES = ["Phân loại theo cấp độ", "User tự upload", "Lấy vào ôn luyện", "Chọn kho từ vựng"];
 
-const HOME_IMPORTANT_ITEMS = [
-  ["Khóa học", "Điểm vào chính của người dùng sau khi đăng nhập."],
-  ["Lộ trình", "Chứa khóa free, khóa mua và các bài test tư vấn."],
-  ["Học tập", "Có quyền học rồi mới vào chọn chặng, chọn bài và cập nhật tiến độ."],
-  ["Ôn luyện", "Luyện từ vựng, viết, nghe, nói và ngữ pháp theo quyền học hiện có."],
+const FOOTER_LINK_GROUPS = [
+  {
+    title: "Học tập",
+    links: [
+      ["/khoa-hoc", "Khóa học"],
+      ["/lo-trinh", "Lộ trình"],
+      ["/hoc-tap", "Học tập"],
+      ["/on-luyen", "Ôn luyện"],
+    ],
+  },
+  {
+    title: "Thi và tiến độ",
+    links: [
+      ["/thi", "Kho đề thi"],
+      ["/giai-dau", "Giải đấu"],
+      ["/tien-do", "Tiến độ"],
+      ["/bang-xep-hang", "Bảng xếp hạng"],
+    ],
+  },
+  {
+    title: "Cộng đồng",
+    links: [
+      ["/nhom-chat", "Nhóm chat"],
+      ["/hop-thu", "Hộp thư"],
+      ["/lien-he", "Liên hệ admin"],
+      ["/profile", "Tài khoản"],
+    ],
+  },
+  {
+    title: "Cá nhân hóa",
+    links: [
+      ["/chon-ngon-ngu", "Chọn ngôn ngữ"],
+      ["/pet", "Pet đồng hành"],
+      ["/so-tay", "Sổ tay"],
+      ["/cai-dat", "Cài đặt"],
+    ],
+  },
 ];
-const HOME_ACCESS_RULES = [
-  "Người dùng vào web lần đầu sẽ ở trang chủ.",
-  "Muốn dùng tính năng phải đăng nhập trước.",
-  "Đăng nhập xong mới chọn ngôn ngữ học.",
-  "Có thể chọn gói free để bắt đầu hoặc làm test tư vấn gói mua phù hợp.",
-];
-const HOME_FLOW_ITEMS = ["Trang chủ", "Đăng nhập", "Chọn ngôn ngữ", "Khóa học", "Lộ trình", "Học tập"];
 
-function Header({ apiStatus, user }) {
+function useScrolled(threshold = 20) {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > threshold);
+    window.addEventListener("scroll", handler, { passive: true });
+    handler();
+    return () => window.removeEventListener("scroll", handler);
+  }, [threshold]);
+  return scrolled;
+}
+
+function useMousePosition() {
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  useEffect(() => {
+    const handler = (e) => setMouse({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", handler);
+    return () => window.removeEventListener("mousemove", handler);
+  }, []);
+  return mouse;
+}
+
+function TopNav({ app }) {
+  const navigate = useNavigate();
+  const scrolled = useScrolled();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [courseMenuOpen, setCourseMenuOpen] = useState(false);
+  const courseMenuRef = useRef(null);
+  const courseMenuTriggerRef = useRef(null);
+  const courseMenuPanelRef = useRef(null);
+  const [courseMenuPosition, setCourseMenuPosition] = useState({ left: 0, top: 64 });
+
+  const hasUser = Boolean(app.user);
+  const hasLanguage = Boolean(app.user?.learning_language_code);
+
+  const mainLinks = hasUser && hasLanguage
+    ? [
+        ["/bang-vang-server", "🏆", "Bảng Vàng"],
+        ["/khoa-hoc", "📚", "Khóa học"],
+        ["/lien-he", "📩", "Liên hệ"],
+        ["/hop-thu", "📧", "Hộp thư"],
+        ["/profile", "👤", "Profile"],
+        ["/cai-dat", "✨", "Cài đặt"],
+      ]
+    : hasUser
+    ? [["/chon-ngon-ngu", "🌍", "Chọn ngôn ngữ"], ["/profile", "👤", "Profile"]]
+    : [["/dang-nhap", "🔑", "Đăng nhập"]];
+
+  const handleCourseMenuItemClick = useCallback((path) => {
+    setCourseMenuOpen(false);
+    setMenuOpen(false);
+    navigate(path);
+  }, [navigate]);
+
+  const updateCourseMenuPosition = useCallback(() => {
+    const rect = courseMenuTriggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setCourseMenuPosition({
+      left: rect.left + rect.width / 2,
+      top: rect.bottom + 8,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!courseMenuOpen) return;
+    updateCourseMenuPosition();
+  }, [courseMenuOpen, updateCourseMenuPosition]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      const isInsideTrigger = courseMenuRef.current?.contains(event.target);
+      const isInsidePanel = courseMenuPanelRef.current?.contains(event.target);
+      if (!isInsideTrigger && !isInsidePanel) {
+        setCourseMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!courseMenuOpen) return;
+    window.addEventListener("resize", updateCourseMenuPosition);
+    window.addEventListener("scroll", updateCourseMenuPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateCourseMenuPosition);
+      window.removeEventListener("scroll", updateCourseMenuPosition, true);
+    };
+  }, [courseMenuOpen, updateCourseMenuPosition]);
+
   return (
-    <section className="hero-card app-header">
-      <p className="eyebrow">Vmora</p>
-      <h1>Vmora</h1>
-      <div className="hero-meta">
-        <div className="status-pill">{apiStatus}</div>
-        {user?.learning_language_code ? (
-          <div className="status-pill status-pill-secondary">{LANGUAGE_LABELS[user.learning_language_code] ?? user.learning_language_code}</div>
+    <>
+      <header className={`topnav${scrolled ? " topnav-scrolled" : ""}`}>
+        <div className="topnav-inner">
+          <button className="topnav-logo" onClick={() => { navigate("/"); setMenuOpen(false); }} type="button">
+            <span className="topnav-logo-icon">✨</span>
+            <span className="topnav-logo-text">Vmora</span>
+            {app.user?.learning_language_code ? (
+              <span className="topnav-lang-pill">{LANGUAGE_LABELS[app.user.learning_language_code] ?? app.user.learning_language_code}</span>
+            ) : null}
+          </button>
+
+          <nav className="topnav-links" aria-label="Menu chính">
+            {mainLinks.map(([to, icon, label]) =>
+              to === "/khoa-hoc" ? (
+                <div
+                  className="topnav-dropdown"
+                  key={to}
+                  ref={courseMenuRef}
+                >
+                  <button
+                    aria-expanded={courseMenuOpen}
+                    className={`topnav-link topnav-dropdown-trigger${courseMenuOpen ? " topnav-dropdown-trigger-open" : ""}`}
+                    onClick={() => {
+                      updateCourseMenuPosition();
+                      setCourseMenuOpen((current) => !current);
+                    }}
+                    ref={courseMenuTriggerRef}
+                    type="button"
+                  >
+                    <span className="topnav-link-icon">{icon}</span>
+                    <span className="topnav-link-label">{label}</span>
+                    <span className="topnav-dropdown-caret">▾</span>
+                  </button>
+
+                  {courseMenuOpen && typeof document !== "undefined"
+                    ? createPortal(
+                        <div
+                          className="topnav-dropdown-panel"
+                          ref={courseMenuPanelRef}
+                          style={{ left: courseMenuPosition.left, top: courseMenuPosition.top }}
+                        >
+                          {COURSE_HUB_ITEMS.map((item) => (
+                            <a
+                              className="topnav-dropdown-item"
+                              href={item.path}
+                              key={item.path}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                handleCourseMenuItemClick(item.path);
+                              }}
+                            >
+                              <span className="topnav-dropdown-item-icon">{item.icon}</span>
+                              <span className="topnav-dropdown-item-label">{item.title}</span>
+                            </a>
+                          ))}
+                        </div>,
+                        document.body,
+                      )
+                    : null}
+                </div>
+              ) : (
+                <NavLink
+                  className={({ isActive }) => `topnav-link${isActive ? " topnav-link-active" : ""}`}
+                  key={to}
+                  onClick={() => setMenuOpen(false)}
+                  to={to}
+                >
+                  <span className="topnav-link-icon">{icon}</span>
+                  <span className="topnav-link-label">{label}</span>
+                </NavLink>
+              ),
+            )}
+          </nav>
+
+          <button
+            aria-label="Mở menu"
+            className={`topnav-burger${menuOpen ? " topnav-burger-open" : ""}`}
+            onClick={() => setMenuOpen((v) => !v)}
+            type="button"
+          >
+            <span /><span /><span />
+          </button>
+        </div>
+
+        {menuOpen ? (
+          <div className="topnav-mobile-dropdown">
+            {mainLinks.map(([to, icon, label]) => (
+              <NavLink
+                className={({ isActive }) => `topnav-mobile-link${isActive ? " topnav-mobile-link-active" : ""}`}
+                key={to}
+                onClick={() => setMenuOpen(false)}
+                to={to}
+              >
+                <span>{icon}</span> {label}
+              </NavLink>
+            ))}
+          </div>
         ) : null}
-      </div>
-    </section>
+      </header>
+    </>
   );
 }
 
-function MenuBar({ title, items, extraItems = [] }) {
+function Footer({ app }) {
+  const hasUser = Boolean(app.user);
+  const hasLanguage = Boolean(app.user?.learning_language_code);
+  const learningLabel = app.user?.learning_language_code
+    ? LANGUAGE_LABELS[app.user.learning_language_code] ?? app.user.learning_language_code
+    : "Chưa chọn";
+  const footerNote = hasUser
+    ? hasLanguage
+      ? "Bạn đang ở trong hệ sinh thái học tập có lộ trình, ôn luyện, thi và cộng đồng realtime."
+      : "Bạn đã đăng nhập. Chọn ngôn ngữ để mở toàn bộ khu học tập và hành trình cá nhân hóa."
+    : "Đăng nhập để chọn ngôn ngữ, kích hoạt lộ trình và đi tiếp từng chặng rõ ràng trong Vmora.";
+
   return (
-    <section className="flow-card menu-section">
-      <div className="section-heading compact-heading">
-        <p className="eyebrow">Menu</p>
-        <h2>{title}</h2>
-      </div>
-      <nav className="app-nav">
-        {[...items, ...extraItems].map(([to, label]) => (
-          <NavLink className={({ isActive }) => (isActive ? "nav-link nav-link-active" : "nav-link")} key={to} to={to}>
-            {label}
-          </NavLink>
+    <footer className="site-footer">
+      <div className="site-footer-grid">
+        <section className="site-footer-brand">
+          <div className="site-footer-logo">
+            <span className="site-footer-logo-mark">✦</span>
+            <div>
+              <strong>Vmora</strong>
+              <span>Nền tảng học ngôn ngữ theo lộ trình realtime</span>
+            </div>
+          </div>
+          <p className="site-footer-copy">{footerNote}</p>
+          <div className="site-footer-status-row">
+            <span className="site-footer-chip">{app.apiStatus}</span>
+            <span className="site-footer-chip">Ngôn ngữ: {learningLabel}</span>
+            <span className="site-footer-chip">Admin: {app.user?.is_admin ? "Có" : "Không"}</span>
+          </div>
+        </section>
+
+        {FOOTER_LINK_GROUPS.map((group) => (
+          <nav aria-label={group.title} className="site-footer-nav" key={group.title}>
+            <p className="site-footer-title">{group.title}</p>
+            <div className="site-footer-links">
+              {group.links.map(([to, label]) => (
+                <NavLink className="site-footer-link" key={to} to={to}>
+                  {label}
+                </NavLink>
+              ))}
+            </div>
+          </nav>
         ))}
-      </nav>
-    </section>
+      </div>
+
+      <div className="site-footer-bottom">
+        <p>Vmora kết nối khóa học, lộ trình, ôn luyện, thi, cộng đồng và quản trị trong cùng một hệ thống.</p>
+        <p>{`© ${new Date().getFullYear()} Vmora. Học đều từng ngày, mở dần từng chặng.`}</p>
+      </div>
+    </footer>
   );
 }
 
-function DynamicMenus({ app }) {
-  const location = useLocation();
-
-  if (!app.user) {
-    return null;
-  }
-
-  if (!app.user.learning_language_code) {
-    return null;
-  }
-
-  const extraItems = app.user.is_admin ? [["/admin", "Admin"]] : [];
-  const menus = [<MenuBar extraItems={extraItems} items={ROOT_MENU} key="root" title="Cấp 1" />];
-  const isPracticeRoute = location.pathname === "/on-luyen" || PRACTICE_PATHS.includes(location.pathname);
-
-  if (
-    ["/khoa-hoc", "/bang-xep-hang", "/hoc-tap", "/giai-dau", "/tien-do", "/nhom-chat", "/lo-trinh", "/pet", "/thi", "/so-tay", "/kho-tu-vung"].includes(
-      location.pathname,
-    ) || isPracticeRoute
-  ) {
-    menus.push(<MenuBar items={COURSE_MENU} key="course" title="Khóa học" />);
-  }
-
-  if (["/hoc-tap", "/pet", "/thi", "/so-tay", "/kho-tu-vung"].includes(location.pathname) || isPracticeRoute) {
-    menus.push(<MenuBar items={LEARNING_MENU} key="learning" title="Học tập" />);
-  }
-
-  if (isPracticeRoute) {
-    menus.push(<MenuBar items={PRACTICE_MENU} key="practice" title="Ôn luyện" />);
-  }
-
-  return menus;
+function useReveal(rootMargin = "-60px") {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { rootMargin }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [rootMargin]);
+  return [ref, visible];
 }
 
 function Card({ eyebrow, title, children, action, className = "" }) {
+
   return (
     <article className={`course-card ${className}`.trim()}>
       {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
@@ -177,12 +495,51 @@ function Card({ eyebrow, title, children, action, className = "" }) {
 function SimplePage({ title, eyebrow, children }) {
   return (
     <section className="flow-card">
-      <div className="section-heading">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2>{title}</h2>
-      </div>
+      {eyebrow || title ? (
+        <div className="section-heading">
+          {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
+          {title ? <h2>{title}</h2> : null}
+        </div>
+      ) : null}
       {children}
     </section>
+  );
+}
+
+function MenuHubPage({ eyebrow, title, summary, items }) {
+  const navigate = useNavigate();
+
+  return (
+    <SimplePage eyebrow={eyebrow} title={title}>
+      <section className="menu-hub-shell">
+        {summary ? (
+          <div className="menu-hub-summary">
+            <p>{summary}</p>
+          </div>
+        ) : null}
+
+        <div className="menu-hub-list">
+          {items.map((item, index) => (
+            <button
+              className={`menu-hub-item menu-hub-item-${item.tone ?? "default"}`}
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              type="button"
+            >
+              <div className="menu-hub-item-main">
+                <span className="menu-hub-item-order">{String(index + 1).padStart(2, "0")}</span>
+                <span className="menu-hub-item-icon">{item.icon}</span>
+                <div className="menu-hub-item-copy">
+                  <h3>{item.title}</h3>
+                  <p>{item.description}</p>
+                </div>
+              </div>
+              <span className="menu-hub-item-arrow">↗</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    </SimplePage>
   );
 }
 
@@ -254,6 +611,21 @@ function buildGiftItems(app) {
   }));
 }
 
+function getMailTypeMeta(type) {
+  switch (type) {
+    case "system":
+      return { icon: "🛎️", label: "Hệ thống", tone: "system" };
+    case "friend":
+      return { icon: "💬", label: "Bạn bè", tone: "friend" };
+    case "achievement":
+      return { icon: "🏅", label: "Thành tích", tone: "achievement" };
+    case "reward":
+      return { icon: "🎁", label: "Phần quà", tone: "reward" };
+    default:
+      return { icon: "✉️", label: "Thông báo", tone: "default" };
+  }
+}
+
 function safeClassPart(value, fallback = "default") {
   return String(value || fallback)
     .toLowerCase()
@@ -265,63 +637,231 @@ function HomePage({ app }) {
   const hasUser = Boolean(app.user);
   const hasLanguage = Boolean(app.user?.learning_language_code);
   const startPath = hasUser ? (hasLanguage ? "/khoa-hoc" : "/chon-ngon-ngu") : "/dang-nhap";
+  const [featRef, featVisible] = useReveal("-40px");
+  const [langRef, langVisible] = useReveal("-80px");
+  const [openFeatureKey, setOpenFeatureKey] = useState("roadmap");
+  const mouse = useMousePosition();
+
+  // Calculate parallax offset for blobs
+  const tx = (mouse.x - window.innerWidth / 2) * 0.05;
+  const ty = (mouse.y - window.innerHeight / 2) * 0.05;
+
+  const features = [
+    {
+      key: "roadmap",
+      icon: "🚀",
+      title: "Lộ trình bài bản",
+      desc: "Từ cơ bản đến nâng cao theo đường dẫn cá nhân hóa.",
+      detail: "Người học đi từ khóa học sang lộ trình, chọn chặng, mở bài, cập nhật tiến độ và mở tiếp bài sau theo đúng nhịp học đã chốt.",
+      accent: "violet",
+    },
+    {
+      key: "ai",
+      icon: "🤖",
+      title: "AI Ôn luyện",
+      desc: "Nghe, nói, đọc, viết và được gợi ý ngay lập tức.",
+      detail: "Hệ thống gom hoạt động từ vựng, viết, nghe, nói và ngữ pháp trong cùng một luồng ôn luyện để bạn luyện đúng kỹ năng còn yếu.",
+      accent: "pink",
+    },
+    {
+      key: "rank",
+      icon: "🏆",
+      title: "Giải đấu & Rank",
+      desc: "Thi theo mùa, leo bảng vũ đài và rinh quà hấp dẫn.",
+      detail: "Từ bài thi thường đến giải đấu, mọi kết quả đều quay về bảng xếp hạng và tiến độ cá nhân để người học nhìn thấy sự tiến bộ rõ ràng.",
+      accent: "gold",
+    },
+    {
+      key: "community",
+      icon: "💬",
+      title: "Cộng đồng sôi nổi",
+      desc: "Kết bạn, tạo nhóm riêng và học cùng nhau mọi lúc.",
+      detail: "Người học có thể vào nhóm chat, hộp thư, ticket hỗ trợ và tương tác cộng đồng trong cùng một hệ sinh thái realtime, không bị tách rời.",
+      accent: "sky",
+    },
+    {
+      key: "pet",
+      icon: "🐾",
+      title: "Pet AI cạnh bên",
+      desc: "Pet có AI ghi nhớ và đồng hành cùng hành trình của bạn.",
+      detail: "Pet đóng vai trò bạn đồng hành, lưu tương tác, phản hồi theo tiến độ và giúp trải nghiệm học tập có cảm giác sống động hơn từng ngày.",
+      accent: "mint",
+    },
+    {
+      key: "languages",
+      icon: "🌍",
+      title: "5 ngôn ngữ",
+      desc: "Tiếng Anh, Trung, Nhật, Hàn, Đức trên một nền tảng duy nhất.",
+      detail: "Toàn bộ luồng học liệu, ôn luyện, thi và cộng đồng đều bám theo ngôn ngữ bạn chọn để không bị loãng trải nghiệm khi học nhiều chương trình khác nhau.",
+      accent: "sunset",
+    },
+  ];
+  const languages = [
+    { code: "en", label: "Tiếng Anh", sub: "English", image: "/images/anh.svg" },
+    { code: "zh", label: "Tiếng Trung", sub: "中文", image: "/images/trung.webp" },
+    { code: "ja", label: "Tiếng Nhật", sub: "日本語", image: "/images/nhat.jpg" },
+    { code: "ko", label: "Tiếng Hàn", sub: "한국어", image: "/images/han.svg" },
+    { code: "de", label: "Tiếng Đức", sub: "Deutsch", image: "/images/duc.png" },
+  ];
 
   return (
     <>
-      <section className="flow-card landing-index">
-        <div className="landing-index-copy">
-          <p className="eyebrow">Trang chủ</p>
-          <h2>Nền tảng học ngôn ngữ theo lộ trình</h2>
-          <p>
-            Đây là trang đầu tiên người dùng nhìn thấy khi vào web. Các chức năng như khóa học, học tập, ôn luyện,
-            hộp thư, cài đặt và cộng đồng chỉ mở sau khi đăng nhập.
+      <section className="hero-landing">
+        <div 
+          className="hero-blob hero-blob-1" 
+          style={{ transform: `translate(${tx}px, ${ty}px)` }}
+        />
+        <div 
+          className="hero-blob hero-blob-2" 
+          style={{ transform: `translate(${-tx * 1.5}px, ${-ty * 1.5}px)` }}
+        />
+        <div 
+          className="hero-blob hero-blob-3" 
+          style={{ transform: `translate(${tx * 0.8}px, ${-ty * 0.8}px)` }}
+        />
+        <div aria-hidden="true" className="hero-motion-orbit hero-motion-orbit-1" />
+        <div aria-hidden="true" className="hero-motion-orbit hero-motion-orbit-2" />
+        <div className="hero-content">
+          <div className="hero-badge reveal-fade-up" style={{ animationDelay: "0ms" }}>
+            <span>🌟</span> Nền tảng học ngôn ngữ thế hệ mới
+          </div>
+          <h1 className="hero-title reveal-fade-up" style={{ animationDelay: "80ms" }}>
+            Chinh phục ngôn ngữ<br />
+            <span className="hero-title-gradient">theo cách của bạn</span>
+          </h1>
+          <p className="hero-subtitle reveal-fade-up" style={{ animationDelay: "160ms" }}>
+            Vmora kết hợp lộ trình thông minh, AI ôn luyện và cộng đồng sôi nổi —
+            giúp bạn tiến bộ rõ rệt mỗi ngày.
           </p>
-          <div className="inline-actions">
-            <button className="primary-button complete-button" onClick={() => navigate(startPath)} type="button">
-              {hasUser ? "Tiếp tục học" : "Đăng nhập để bắt đầu"}
+          <div className="hero-actions reveal-fade-up" style={{ animationDelay: "240ms" }}>
+            <button
+              className="hero-cta-primary"
+              id="hero-start-btn"
+              onClick={() => navigate(startPath)}
+              type="button"
+            >
+              {hasUser ? "⚡ Vào học ngay" : "🚀 Bắt đầu miễn phí"}
             </button>
             {!hasUser ? (
-              <button className="ghost-button complete-button" onClick={() => navigate("/dang-nhap")} type="button">
-                Tạo tài khoản
+              <button
+                className="hero-cta-secondary"
+                onClick={() => navigate("/dang-nhap")}
+                type="button"
+              >
+                Đăng nhập
               </button>
             ) : null}
           </div>
-        </div>
-        <div className="landing-index-panel">
-          <p className="eyebrow">Luồng chính</p>
-          <div className="flow-line-text landing-flow-line">
-            {HOME_FLOW_ITEMS.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
+          <div className="hero-stats reveal-fade-up" style={{ animationDelay: "320ms" }}>
+            <div className="hero-stat">
+              <strong>5</strong><span>Ngôn ngữ</span>
+            </div>
+            <div className="hero-stat-divider" />
+            <div className="hero-stat">
+              <strong>AI</strong><span>Trợ lý</span>
+            </div>
+            <div className="hero-stat-divider" />
+            <div className="hero-stat">
+              <strong>Live</strong><span>Realtime</span>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="flow-card">
-        <div className="section-heading">
-          <p className="eyebrow">Thông tin quan trọng</p>
-          <h2>Người dùng cần biết gì trước khi vào hệ thống</h2>
-        </div>
-        <div className="route-flow-grid">
-          {HOME_IMPORTANT_ITEMS.map(([title, description]) => (
-            <Card eyebrow="Vmora" key={title} title={title}>
-              <p>{description}</p>
-            </Card>
+      <section className={`language-showcase-section${langVisible ? " language-showcase-visible" : ""}`} ref={langRef}>
+        <div className="language-showcase-grid">
+          {languages.map((item, index) => (
+            <article className="language-showcase-card" key={item.code} style={{ transitionDelay: `${index * 90}ms` }}>
+              <div className="language-showcase-flag-wrap">
+                <img alt={item.label} className="language-showcase-flag" src={item.image} />
+              </div>
+              <div className="language-showcase-meta">
+                <strong>{item.label}</strong>
+                <span>{item.sub}</span>
+              </div>
+            </article>
           ))}
+        </div>
+        <div className="language-showcase-head">
+          <div>
+            <p className="eyebrow">5 ngôn ngữ đang mở</p>
+          </div>
         </div>
       </section>
 
-      <section className="flow-card">
-        <div className="section-heading compact-heading">
-          <p className="eyebrow">Quy tắc truy cập</p>
-          <h2>Chưa đăng nhập thì chỉ xem trang chủ</h2>
+      <section className="features-section" ref={featRef}>
+        <div className="features-timeline-head">
+          <div>
+            <p className="eyebrow">Bản đồ tính năng</p>
+            <h2>Khám phá Vmora</h2>
+          </div>
         </div>
-        <div className="course-grid">
-          {HOME_ACCESS_RULES.map((item, index) => (
-            <Card eyebrow={`Bước ${index + 1}`} key={item} title={item}>
-              <p>{index === 0 ? "Trang chủ là nơi giới thiệu thông tin chính." : "Các tính năng phía trong sẽ yêu cầu tài khoản."}</p>
-            </Card>
-          ))}
+        <div className={`features-timeline${featVisible ? " features-timeline-visible" : ""}`}>
+          {features.map((feat, index) => {
+            const isLeft = index % 2 === 0;
+            const isOpen = openFeatureKey === feat.key;
+            return (
+              <div
+                className={isLeft ? "timeline-row timeline-row-left" : "timeline-row timeline-row-right"}
+                key={feat.key}
+                style={{ transitionDelay: `${index * 90}ms` }}
+              >
+                {isLeft ? (
+                  <div className="timeline-side">
+                    <article className={isOpen ? `timeline-card timeline-card-open timeline-card-${feat.accent}` : `timeline-card timeline-card-${feat.accent}`}>
+                      <button
+                        aria-expanded={isOpen}
+                        className="timeline-card-trigger"
+                        onClick={() => setOpenFeatureKey((current) => (current === feat.key ? null : feat.key))}
+                        type="button"
+                      >
+                        <div className="timeline-card-topline">
+                          <span className="timeline-icon">{feat.icon}</span>
+                          <span className="timeline-toggle">{isOpen ? "−" : "+"}</span>
+                        </div>
+                        <h3 className="timeline-title">{feat.title}</h3>
+                        <p className="timeline-desc">{feat.desc}</p>
+                      </button>
+                      <div className={isOpen ? "timeline-panel timeline-panel-open" : "timeline-panel"}>
+                        <p>{feat.detail}</p>
+                      </div>
+                    </article>
+                  </div>
+                ) : (
+                  <div aria-hidden="true" className="timeline-side timeline-side-empty" />
+                )}
+
+                <div className="timeline-center">
+                  <span className={isOpen ? "timeline-dot timeline-dot-active" : "timeline-dot"} />
+                </div>
+
+                {!isLeft ? (
+                  <div className="timeline-side">
+                    <article className={isOpen ? `timeline-card timeline-card-open timeline-card-${feat.accent}` : `timeline-card timeline-card-${feat.accent}`}>
+                      <button
+                        aria-expanded={isOpen}
+                        className="timeline-card-trigger"
+                        onClick={() => setOpenFeatureKey((current) => (current === feat.key ? null : feat.key))}
+                        type="button"
+                      >
+                        <div className="timeline-card-topline">
+                          <span className="timeline-icon">{feat.icon}</span>
+                          <span className="timeline-toggle">{isOpen ? "−" : "+"}</span>
+                        </div>
+                        <h3 className="timeline-title">{feat.title}</h3>
+                        <p className="timeline-desc">{feat.desc}</p>
+                      </button>
+                      <div className={isOpen ? "timeline-panel timeline-panel-open" : "timeline-panel"}>
+                        <p>{feat.detail}</p>
+                      </div>
+                    </article>
+                  </div>
+                ) : (
+                  <div aria-hidden="true" className="timeline-side timeline-side-empty" />
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
     </>
@@ -375,56 +915,13 @@ function LanguagePage({ app }) {
 }
 
 function CoursePage() {
-  const navigate = useNavigate();
-
   return (
-    <SimplePage eyebrow="Khóa học" title="Khóa học">
-      <div className="route-flow-grid">
-        <Card
-          action={
-            <button className="primary-button complete-button" onClick={() => navigate("/lo-trinh")} type="button">
-              Vào lộ trình
-            </button>
-          }
-          eyebrow="Khóa học"
-          title="Điểm vào lộ trình"
-        >
-          <p>Khóa học là điểm vào. Người dùng sẽ đi tiếp sang lộ trình để chọn khóa free, khóa mua hoặc làm test tư vấn.</p>
-        </Card>
-
-        <Card
-          action={
-            <button className="ghost-button complete-button" onClick={() => navigate("/lo-trinh")} type="button">
-              Xem khóa free
-            </button>
-          }
-          eyebrow="Lộ trình"
-          title="Khóa free"
-        >
-          <p>Trong lộ trình có 1 khóa free được cập nhật liên tục để người dùng bắt đầu.</p>
-        </Card>
-
-        <Card
-          action={
-            <button className="ghost-button complete-button" onClick={() => navigate("/lo-trinh")} type="button">
-              Làm test tư vấn
-            </button>
-          }
-          eyebrow="Lộ trình"
-          title="Khóa mua và test"
-        >
-          <p>Khóa mua và nhiều bài test tư vấn đều nằm trong lộ trình, hệ thống chỉ gợi ý và không ép mua.</p>
-        </Card>
-      </div>
-
-      <div className="flow-line-text">
-        <span>Khóa học</span>
-        <span>Lộ trình</span>
-        <span>Khóa free</span>
-        <span>Khóa mua</span>
-        <span>Test tư vấn</span>
-      </div>
-    </SimplePage>
+    <MenuHubPage
+      eyebrow="Khóa học"
+      items={COURSE_HUB_ITEMS}
+      summary="Chọn nhanh khu vực học tập bạn muốn vào. Trên thanh menu chính, rê chuột vào Khóa học cũng sẽ hiện danh sách này."
+      title="Chọn khu vực"
+    />
   );
 }
 
@@ -437,8 +934,8 @@ function StudyPage({ app }) {
       <SimplePage eyebrow="Học tập" title="Học tập">
         <div className="lesson-detail-panel">
           <p className="eyebrow">Cần quyền học</p>
-          <h2>Học tập mở sau khi có quyền học</h2>
-          <p>Vào lộ trình để chọn khóa free, khóa mua hoặc làm test tư vấn trước khi vào khu học tập.</p>
+          <h2>Tính năng chưa được mở</h2>
+          <p>Bạn cần kích hoạt khóa học hoặc đăng ký gói để truy cập khu vực này.</p>
           <div className="lesson-detail-actions">
             <button className="primary-button complete-button" onClick={() => navigate("/lo-trinh")} type="button">
               Vào lộ trình
@@ -450,17 +947,23 @@ function StudyPage({ app }) {
   }
 
   return (
-    <SimplePage eyebrow="Học tập" title="Học tập">
-      <div className="course-grid">
-        {STUDY_HUB_ITEMS.map(([path, title, description]) => (
-          <button className="course-card diagram-button-card" key={path} onClick={() => navigate(path)} type="button">
-            <p className="eyebrow">Học tập</p>
-            <h3>{title}</h3>
-            <p>{description}</p>
-          </button>
-        ))}
-      </div>
-    </SimplePage>
+    <MenuHubPage
+      eyebrow="Học tập"
+      items={LEARNING_HUB_ITEMS}
+      summary="Khu học tập gom các công cụ học sâu: pet đồng hành, thi, sổ tay, kho từ vựng và ôn luyện theo kỹ năng."
+      title="Chọn công cụ học tập"
+    />
+  );
+}
+
+function PracticeHubPage() {
+  return (
+    <MenuHubPage
+      eyebrow="Ôn luyện"
+      items={PRACTICE_HUB_ITEMS}
+      summary="Chọn đúng kỹ năng bạn muốn luyện trước khi vào bài tập chi tiết."
+      title="Chọn kỹ năng ôn luyện"
+    />
   );
 }
 
@@ -557,22 +1060,6 @@ function RoadmapPage({ app }) {
         </Card>
       </div>
 
-      <div className="flow-line-text">
-        <span>Đăng nhập</span>
-        <span>Khóa học</span>
-        <span>Lộ trình</span>
-        <span>Khóa free</span>
-        <span>Khóa mua</span>
-        <span>Test tư vấn</span>
-        <span>Có quyền học</span>
-        <span>Học tập</span>
-        <span>Chọn chặng</span>
-        <span>Chọn bài</span>
-        <span>Học bài</span>
-        <span>Cập nhật tiến độ</span>
-        <span>Mở bài tiếp theo</span>
-      </div>
-
       {!hasLearningAccess ? (
         <div className="lesson-detail-panel">
           <p className="eyebrow">Lộ trình</p>
@@ -581,7 +1068,7 @@ function RoadmapPage({ app }) {
           <div className="lesson-detail-actions">
             {freePackage ? (
               <button className="primary-button complete-button" onClick={() => handlePackageSelection(app, navigate, freePackage)} type="button">
-                Kích hoạt khóa free
+                Bắt đầu học ngay
               </button>
             ) : (
               <span className="completion-badge">Chưa có khóa free</span>
@@ -703,69 +1190,275 @@ function MailPage({ app }) {
   const badges = buildAchievementBadges(app);
   const gifts = buildGiftItems(app);
   const courses = app.overview?.courses ?? [];
+  const notifications = app.notifications ?? [];
+  const tickets = app.tickets ?? [];
+  const [mailTab, setMailTab] = useState("notifications");
+  const [selectedMailId, setSelectedMailId] = useState("");
+  const [dismissedMailIds, setDismissedMailIds] = useState([]);
+
+  const notificationEntries = notifications.map((item) => {
+    const meta = getMailTypeMeta(item.notification_type);
+    return {
+      id: `notification-${item.id}`,
+      source: "notification",
+      sourceId: item.id,
+      title: item.title,
+      summary: item.content,
+      content: item.content,
+      timeLabel: formatDateTime(item.created_at),
+      statusLabel: item.is_read ? "Đã đọc" : "Mới",
+      icon: meta.icon,
+      tab: "notifications",
+      typeLabel: meta.label,
+      tone: meta.tone,
+      isRead: item.is_read,
+      actionLabel: item.is_read ? "Đã xem" : "Mở thư",
+      bannerTitle: meta.label,
+      bannerCaption: "Thông báo cập nhật mới nhất",
+      footerLabel: "Hộp thư Vmora",
+    };
+  });
+
+  const systemEntries = [
+    ...gifts.map((item) => ({
+      id: `gift-${item.id}`,
+      source: "gift",
+      sourceId: item.id,
+      title: item.title,
+      summary: item.content,
+      content: `${item.content}. Gói này đang sẵn sàng trong hệ thống học tập của bạn.`,
+      timeLabel: "Hệ thống vừa kích hoạt",
+      statusLabel: "Sẵn sàng",
+      icon: "🎁",
+      tab: "system",
+      typeLabel: "Phần quà",
+      tone: "reward",
+      isRead: true,
+      actionLabel: "Đã nhận",
+      bannerTitle: "Phần thưởng",
+      bannerCaption: "Gói học tập vừa được mở",
+      footerLabel: "Kho quà cá nhân",
+    })),
+    ...courses.slice(0, 6).map((course) => ({
+      id: `progress-${course.id}`,
+      source: "progress",
+      sourceId: course.id,
+      title: course.title,
+      summary: `${course.completed_lessons}/${course.total_lessons} bài đã hoàn thành`,
+      content: `Khóa học đang ở mức ${course.progress_percent}%. Bạn đã hoàn thành ${course.completed_lessons}/${course.total_lessons} bài và có thể tiếp tục học ngay.`,
+      timeLabel: "Tiến độ gần nhất",
+      statusLabel: `${course.progress_percent}%`,
+      icon: "📘",
+      tab: "system",
+      typeLabel: "Tiến độ",
+      tone: "system",
+      isRead: true,
+      actionLabel: "Theo dõi",
+      bannerTitle: "Tiến độ",
+      bannerCaption: "Lộ trình đang tiến lên",
+      footerLabel: "Theo dõi khóa học",
+    })),
+  ];
+
+  const feedbackEntries = tickets.length
+    ? tickets.map((item) => ({
+        id: `ticket-${item.id}`,
+        source: "ticket",
+        sourceId: item.id,
+        title: item.subject,
+        summary: item.message,
+        content: item.admin_reply
+          ? `${item.message}\n\nPhản hồi từ admin:\n${item.admin_reply}`
+          : `${item.message}\n\nYêu cầu của bạn đang được xử lý bởi đội ngũ hỗ trợ.`,
+        timeLabel: formatDateTime(item.created_at),
+        statusLabel: item.status,
+        icon: "⚠️",
+        tab: "feedback",
+        typeLabel: "Phản hồi",
+        tone: "friend",
+        isRead: item.status !== "open",
+        actionLabel: item.admin_reply ? "Đã phản hồi" : "Đang xử lý",
+        bannerTitle: "Hỗ trợ",
+        bannerCaption: "Kênh phản hồi người dùng",
+        footerLabel: "Ticket hỗ trợ",
+      }))
+    : badges.map((item, index) => ({
+        id: `badge-${index}`,
+        source: "badge",
+        sourceId: index,
+        title: `Thành tích ${index + 1}`,
+        summary: item,
+        content: `${item}. Hãy tiếp tục giữ nhịp học để mở thêm nhiều mốc thành tích tiếp theo.`,
+        timeLabel: "Thành tích đã ghi nhận",
+        statusLabel: "Đã lưu",
+        icon: "🏅",
+        tab: "feedback",
+        typeLabel: "Thành tích",
+        tone: "achievement",
+        isRead: true,
+        actionLabel: "Đã lưu",
+        bannerTitle: "Thành tích",
+        bannerCaption: "Mốc tiến bộ của bạn",
+        footerLabel: "Hồ sơ thành tựu",
+      }));
+
+  const mailTabs = [
+    { key: "notifications", label: "Thông báo", icon: "📢", count: notificationEntries.length },
+    { key: "system", label: "Hệ thống", icon: "✉️", count: systemEntries.length },
+    { key: "feedback", label: "Phản hồi", icon: "⚠️", count: feedbackEntries.length },
+  ];
+
+  const activeItems = (
+    mailTab === "notifications"
+      ? notificationEntries
+      : mailTab === "system"
+        ? systemEntries
+        : feedbackEntries
+  ).filter((item) => !dismissedMailIds.includes(item.id));
+
+  const selectedMail = activeItems.find((item) => item.id === selectedMailId) ?? activeItems[0] ?? null;
+  const unreadCount = notificationEntries.filter((item) => !item.isRead).length;
+  const canClaimAll = activeItems.some((item) => item.source === "notification" && !item.isRead);
+
+  useEffect(() => {
+    if (!selectedMail && selectedMailId) {
+      setSelectedMailId("");
+      return;
+    }
+    if (selectedMail && selectedMail.id !== selectedMailId) {
+      setSelectedMailId(selectedMail.id);
+    }
+  }, [selectedMail, selectedMailId]);
+
+  async function handlePrimaryAction() {
+    if (!selectedMail) return;
+    if (selectedMail.source === "notification" && !selectedMail.isRead) {
+      await app.markRead(selectedMail.sourceId);
+    }
+  }
+
+  async function handleClaimAll() {
+    const unreadNotifications = activeItems.filter((item) => item.source === "notification" && !item.isRead);
+    if (!unreadNotifications.length) return;
+    await Promise.all(unreadNotifications.map((item) => app.markRead(item.sourceId)));
+  }
+
+  function dismissItems(ids) {
+    if (!ids.length) return;
+    setDismissedMailIds((current) => Array.from(new Set([...current, ...ids])));
+  }
 
   return (
-    <SimplePage eyebrow="Hộp thư" title="Hộp thư">
-      <div className="course-grid">
-        <Card eyebrow="Hộp thư" title={MAIL_NODES[0]}>
-          <div className="mini-list">
-            {app.notifications.length === 0 ? <p>Chưa có thông báo.</p> : null}
-            {app.notifications.slice(0, 6).map((item) => (
-              <article className="stack-row" key={item.id}>
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.content}</p>
-                  <small>
-                    {item.notification_type} - {formatDateTime(item.created_at)}
-                  </small>
+    <SimplePage>
+      <section className="mail-game-shell">
+        <header className="mail-game-topbar">
+          <div className="mail-game-tabs">
+            {mailTabs.map((tab) => (
+              <button
+                className={mailTab === tab.key ? "mail-game-tab mail-game-tab-active" : "mail-game-tab"}
+                key={tab.key}
+                onClick={() => setMailTab(tab.key)}
+                type="button"
+              >
+                <span className="mail-game-tab-icon">{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="mail-game-topbar-meta">
+            <span>Thư</span>
+            <button className="mail-game-close" type="button">✕</button>
+          </div>
+        </header>
+
+        <div className="mail-game-board">
+          <aside className="mail-game-sidebar">
+            <div className="mail-game-sidebar-list">
+              {activeItems.length === 0 ? <p className="mail-game-empty">Chưa có thư trong mục này.</p> : null}
+              {activeItems.map((item) => (
+                <button
+                  className={selectedMail?.id === item.id ? "mail-game-list-item mail-game-list-item-active" : "mail-game-list-item"}
+                  key={item.id}
+                  onClick={() => setSelectedMailId(item.id)}
+                  type="button"
+                >
+                  <span className="mail-game-list-icon">{item.icon}</span>
+                  <div className="mail-game-list-copy">
+                    <strong>{item.title}</strong>
+                    <span>{item.statusLabel}</span>
+                    <small>{item.timeLabel}</small>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="mail-game-sidebar-footer">Thư: {activeItems.length}/50</div>
+          </aside>
+
+          <section className="mail-game-detail">
+            {selectedMail ? (
+              <>
+                <div className="mail-game-detail-head">
+                  <div>
+                    <p className="eyebrow">{selectedMail.typeLabel}</p>
+                    <h3>{selectedMail.title}</h3>
+                  </div>
+                  <span className={`mail-game-status mail-game-status-${selectedMail.tone}`}>{selectedMail.statusLabel}</span>
                 </div>
-                {item.is_read ? (
-                  <span className="completion-badge done">Đã đọc</span>
-                ) : (
-                  <button className="plain-list-button" onClick={() => app.markRead(item.id)} type="button">
-                    Đánh dấu đọc
+
+                <div className={`mail-game-poster mail-game-poster-${selectedMail.tone}`}>
+                  <div className="mail-game-poster-badge">{selectedMail.bannerTitle}</div>
+                  <div className="mail-game-poster-main">
+                    <div className="mail-game-poster-icon">{selectedMail.icon}</div>
+                    <div>
+                      <strong>{selectedMail.title}</strong>
+                      <span>{selectedMail.bannerCaption}</span>
+                    </div>
+                  </div>
+                  <div className="mail-game-poster-footer">{selectedMail.footerLabel}</div>
+                </div>
+
+                <div className="mail-game-message">
+                  <div className="mail-game-message-meta">
+                    <span>{selectedMail.timeLabel}</span>
+                    <span>{selectedMail.typeLabel}</span>
+                  </div>
+                  <p>{selectedMail.content}</p>
+                </div>
+
+                <div className="mail-game-detail-actions">
+                  <button className="mail-game-cta" onClick={handlePrimaryAction} type="button">
+                    {selectedMail.actionLabel}
                   </button>
-                )}
-              </article>
-            ))}
-          </div>
-        </Card>
-
-        <Card eyebrow="Hộp thư" title={MAIL_NODES[1]}>
-          <div className="mini-list">
-            {badges.length === 0 ? <p>Chưa có thành tích.</p> : null}
-            {badges.map((item) => (
-              <p key={item}>{item}</p>
-            ))}
-          </div>
-        </Card>
-
-        <Card eyebrow="Hộp thư" title={MAIL_NODES[2]}>
-          <div className="mini-list">
-            {gifts.length === 0 ? <p>Chưa có quà/gói được kích hoạt.</p> : null}
-            {gifts.map((item) => (
-              <p key={item.id}>
-                <strong>{item.title}</strong> - {item.content}
-              </p>
-            ))}
-          </div>
-        </Card>
-
-        <Card eyebrow="Hộp thư" title={MAIL_NODES[3]}>
-          <div className="mini-list">
-            <p>Điểm hiện tại: {app.stats?.estimated_points ?? 0}</p>
-            {courses.length === 0 ? <p>Chưa có tiến độ khóa học.</p> : null}
-            {courses.slice(0, 4).map((course) => (
-              <div className="stack-row" key={course.id}>
-                <p>
-                  {course.title}: {course.completed_lessons}/{course.total_lessons} bài
-                </p>
-                <span className="completion-badge">{course.progress_percent}%</span>
+                </div>
+              </>
+            ) : (
+              <div className="mail-game-detail-empty">
+                <strong>Chưa có thư nào</strong>
+                <p>Hãy chọn một mục ở bên trái để xem nội dung chi tiết.</p>
               </div>
-            ))}
+            )}
+          </section>
+        </div>
+
+        <footer className="mail-game-bottom">
+          <div className="mail-game-bottom-left">
+            <button className="mail-game-bottom-button" onClick={() => dismissItems(activeItems.map((item) => item.id))} type="button">
+              Xóa tất cả
+            </button>
+            <button className="mail-game-bottom-button mail-game-bottom-button-primary" disabled={!canClaimAll} onClick={handleClaimAll} type="button">
+              Nhận tất cả
+            </button>
           </div>
-        </Card>
-      </div>
+          <button
+            className="mail-game-bottom-button"
+            disabled={!selectedMail}
+            onClick={() => dismissItems(selectedMail ? [selectedMail.id] : [])}
+            type="button"
+          >
+            Xóa
+          </button>
+        </footer>
+      </section>
     </SimplePage>
   );
 }
@@ -864,32 +1557,169 @@ function SettingsPage({ app }) {
 }
 
 function RankingPage({ app }) {
+  const leaderboard = [...(app.leaderboard ?? [])]
+    .sort((left, right) => (right.score ?? 0) - (left.score ?? 0))
+    .slice(0, 50)
+    .map((item, index) => ({ ...item, rank: index + 1 }));
+  const spotlight = [2, 1, 3]
+    .map((rank) => {
+      const player = leaderboard.find((item) => item.rank === rank);
+      const visual = RANKING_SPOTLIGHT_IMAGES.find((item) => item.rank === rank);
+      if (!player || !visual) return null;
+      return { ...player, ...visual };
+    })
+    .filter(Boolean);
+
   return (
-    <SimplePage eyebrow="Bảng xếp hạng" title="Bảng xếp hạng">
-      <div className="mini-list">
-        {app.leaderboard.slice(0, 12).map((item, index) => (
-          <p key={item.user_id}>
-            {index + 1}. {item.user_name} - {item.score}
+    <SimplePage>
+      <section className="ranking-board-shell">
+        <div className="ranking-board-hero">
+          <div>
+            <p className="eyebrow">Bảng xếp hạng</p>
+            <h2>Top 50 người học dẫn đầu</h2>
+          </div>
+          <p className="ranking-board-hero-copy">
+            Lấy theo tổng điểm hiện tại trên hệ thống. Top 1, 2, 3 được làm nổi bật bằng ảnh riêng, phía dưới là danh sách đầy đủ 50 người có điểm cao nhất.
           </p>
-        ))}
-      </div>
+        </div>
+
+        <div className="ranking-spotlight-grid">
+          {spotlight.map((item) => (
+            <article className={`ranking-spotlight-card ranking-spotlight-card-rank-${item.rank}`} key={`${item.user_id}-${item.rank}`}>
+              <div className="ranking-spotlight-image-wrap">
+                <img alt={item.label} className="ranking-spotlight-image" src={item.image} />
+              </div>
+              <p className="ranking-spotlight-rank">Hạng {item.rank}</p>
+              <h3>{item.user_name ?? "Người chơi ẩn danh"}</h3>
+              <strong>{item.score ?? 0} điểm</strong>
+            </article>
+          ))}
+        </div>
+
+        <div className="ranking-top50-card">
+          <div className="ranking-top50-head">
+            <div>
+              <h3>50 người có điểm cao nhất</h3>
+            </div>
+            <p className="ranking-top50-note">Điểm = bài hoàn thành + thi x10 + giải đấu x10</p>
+          </div>
+
+          <div className="ranking-top50-table">
+            <div className="ranking-top50-table-row ranking-top50-table-head">
+              <span>Hạng</span>
+              <span>Thành viên</span>
+              <span>Điểm</span>
+              <span>Hoàn thành</span>
+              <span>Thi</span>
+              <span>Giải đấu</span>
+            </div>
+            {leaderboard.map((item) => (
+              <div className={`ranking-top50-table-row ${item.rank <= 6 ? "ranking-top50-table-row-highlight" : ""}`} key={`${item.user_id}-${item.rank}`}>
+                <span>#{item.rank}</span>
+                <span>{item.user_name ?? "Người chơi ẩn danh"}</span>
+                <span>{item.score ?? 0}</span>
+                <span>{item.completed_lessons ?? 0}</span>
+                <span>{item.exam_attempts ?? 0}</span>
+                <span>{item.tournament_attempts ?? 0}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </SimplePage>
   );
 }
 
 function GoldenBoardPage({ app }) {
+  const leaderboard = [...(app.leaderboard ?? [])]
+    .sort((left, right) => (right.score ?? 0) - (left.score ?? 0))
+    .slice(0, 50)
+    .map((item, index) => ({ ...item, rank: index + 1 }));
+  const spotlight = leaderboard.slice(0, 6);
+  const podium = [spotlight[1], spotlight[0], spotlight[2]].filter(Boolean);
+  const honored = spotlight.slice(3, 6);
+
   return (
-    <SimplePage eyebrow="Bảng Vàng server" title="Bảng Vàng server">
-      <div className="course-grid">
-        {app.leaderboard.slice(0, 6).map((item, index) => (
-          <Card eyebrow={`Hạng ${index + 1}`} key={item.user_id} title={item.user_name ?? "User"}>
-            <p>{item.score} điểm</p>
-            <p>Xong bài: {item.completed_lessons} (+1)</p>
-            <p>Thi: {item.exam_attempts} (+10)</p>
-            <p>Giải đấu: {item.tournament_attempts ?? 0} (+10)</p>
-          </Card>
-        ))}
-      </div>
+    <SimplePage>
+      <section className="golden-board-shell">
+        <div className="golden-board-hero">
+          <div>
+            <p className="eyebrow">Vinh danh 50 học viên dẫn đầu</p>
+          </div>
+        </div>
+
+        <div className="golden-podium-grid">
+          {podium.map((item) => {
+            const badge = GOLDEN_BOARD_BADGES[item.rank - 1];
+
+            return (
+              <article className={`golden-podium-card golden-podium-card-rank-${item.rank}`} key={`${item.user_id}-${item.rank}`}>
+                <div className={`golden-podium-badge golden-podium-badge-${badge.tone}`}>
+                  <img alt={badge.label} src={badge.image} />
+                </div>
+                <p className="golden-podium-rank">{badge.label}</p>
+                <h3>{item.user_name ?? "Người chơi ẩn danh"}</h3>
+                <strong>{item.score ?? 0} điểm</strong>
+                <div className="golden-podium-stats">
+                  <span>Hoàn thành {item.completed_lessons ?? 0} bài</span>
+                  <span>Thi {item.exam_attempts ?? 0} lượt</span>
+                  <span>Giải đấu {item.tournament_attempts ?? 0} lượt</span>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="golden-honored-grid">
+          {honored.map((item) => {
+            const badge = GOLDEN_BOARD_BADGES[item.rank - 1];
+
+            return (
+              <article className="golden-honored-card" key={`${item.user_id}-${item.rank}`}>
+                <img alt={badge.label} className="golden-honored-image" src={badge.image} />
+                <div className="golden-honored-copy">
+                  <p className="golden-honored-rank">{badge.label}</p>
+                  <h4>{item.user_name ?? "Người chơi ẩn danh"}</h4>
+                  <p>
+                    {item.score ?? 0} điểm · {item.completed_lessons ?? 0} bài hoàn thành · {item.exam_attempts ?? 0} lượt thi
+                  </p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="golden-board-list-card">
+          <div className="golden-board-list-head">
+            <div>
+              <p className="eyebrow">Danh sách vinh danh</p>
+              <h3>50 người có điểm cao nhất</h3>
+            </div>
+            <p className="golden-board-list-note">Điểm = bài hoàn thành + thi x10 + giải đấu x10</p>
+          </div>
+
+          <div className="golden-board-table">
+            <div className="golden-board-row golden-board-row-head">
+              <span>Hạng</span>
+              <span>Thành viên</span>
+              <span>Điểm</span>
+              <span>Hoàn thành</span>
+              <span>Thi</span>
+              <span>Giải đấu</span>
+            </div>
+            {leaderboard.map((item, index) => (
+              <div className={`golden-board-row ${index < 6 ? "golden-board-row-highlight" : ""}`} key={`${item.user_id}-${index}`}>
+                <span>#{index + 1}</span>
+                <span>{item.user_name ?? "Người chơi ẩn danh"}</span>
+                <span>{item.score ?? 0}</span>
+                <span>{item.completed_lessons ?? 0}</span>
+                <span>{item.exam_attempts ?? 0}</span>
+                <span>{item.tournament_attempts ?? 0}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </SimplePage>
   );
 }
@@ -1482,7 +2312,7 @@ function AppRoutes({ app }) {
       <Route element={hasLanguage ? <ExamPage app={app} /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} path="/thi" />
       <Route element={hasLanguage ? <NotePage app={app} /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} path="/so-tay" />
       <Route element={hasLanguage ? <VocabularyBankPage app={app} /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} path="/kho-tu-vung" />
-      <Route element={hasLanguage ? <Navigate replace to={DEFAULT_PRACTICE_PATH} /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} path="/on-luyen" />
+      <Route element={hasLanguage ? <PracticeHubPage /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} path="/on-luyen" />
       {PRACTICE_PATHS.map((path) => (
         <Route element={hasLanguage ? <PracticePage app={app} /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} key={path} path={path} />
       ))}
@@ -1500,9 +2330,11 @@ export default function App() {
 
   return (
     <main className={`app-shell app-theme-${themeMode} app-bg-${backgroundCode}`}>
-      <Header apiStatus={app.apiStatus} user={app.user} />
-      <DynamicMenus app={app} />
-      <AppRoutes app={app} />
+      <TopNav app={app} />
+      <div className="page-body">
+        <AppRoutes app={app} />
+      </div>
+      <Footer app={app} />
     </main>
   );
 }
