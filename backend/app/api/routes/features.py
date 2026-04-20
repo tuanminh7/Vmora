@@ -218,7 +218,6 @@ def user_setting_to_out(item: UserSetting) -> UserSettingOut:
         id=item.id,
         theme_mode=item.theme_mode,
         background_code=item.background_code,
-        gemini_api_key=item.gemini_api_key,
         updated_at=item.updated_at.isoformat(),
     )
 
@@ -970,7 +969,6 @@ async def update_my_settings(payload: UserSettingInput, current_user: User = Dep
         item = await get_or_create_user_setting(session, user_id=current_user.id)
         item.theme_mode = payload.theme_mode
         item.background_code = payload.background_code
-        item.gemini_api_key = payload.gemini_api_key or None
         item.updated_at = utc_now()
         await session.commit()
         await session.refresh(item)

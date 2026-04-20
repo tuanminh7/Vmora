@@ -211,7 +211,6 @@ export default function useVmoraApp() {
   const [settingsForm, setSettingsForm] = useState({
     themeMode: "light",
     backgroundCode: "default",
-    geminiApiKey: "",
   });
   const [contactForm, setContactForm] = useState({
     title: "Liên hệ admin",
@@ -463,7 +462,6 @@ export default function useVmoraApp() {
         setSettingsForm({
           themeMode: payload.theme_mode ?? "light",
           backgroundCode: payload.background_code ?? "default",
-          geminiApiKey: payload.gemini_api_key ?? "",
         });
       })
       .catch(() => setUserSettings(null));
@@ -709,7 +707,6 @@ export default function useVmoraApp() {
           setSettingsForm({
             themeMode: payload.settings.theme_mode ?? "light",
             backgroundCode: payload.settings.background_code ?? "default",
-            geminiApiKey: payload.settings.gemini_api_key ?? "",
           });
           return;
         }
@@ -1089,13 +1086,11 @@ export default function useVmoraApp() {
     const payload = await updateUserSettings(token, {
       theme_mode: settingsForm.themeMode,
       background_code: settingsForm.backgroundCode,
-      gemini_api_key: settingsForm.geminiApiKey.trim() || null,
     });
     setUserSettings(payload);
     setSettingsForm({
       themeMode: payload.theme_mode ?? "light",
       backgroundCode: payload.background_code ?? "default",
-      geminiApiKey: payload.gemini_api_key ?? "",
     });
     setMessage("Đã lưu cài đặt.");
   }

@@ -233,7 +233,6 @@ class SupportTicketOut(BaseModel):
 class UserSettingInput(BaseModel):
     theme_mode: str = Field(default="light", min_length=1, max_length=20)
     background_code: str = Field(default="default", min_length=1, max_length=80)
-    gemini_api_key: str | None = Field(default=None, max_length=255)
 
 
 class UserSettingOut(UserSettingInput):

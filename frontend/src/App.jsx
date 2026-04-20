@@ -169,7 +169,14 @@ const MAIL_NODES = [
 ];
 
 const CONTACT_NODES = ["Chat với admin", "Thông tin", "Liên kết mạng xã hội"];
-const SETTINGS_NODES = ["Chỉnh cấu hình sáng/tối", "Tùy chỉnh background", "API key Gemini"];
+const CONTACT_SOCIAL_LINKS = [
+  { label: "Facebook", icon: "📘", href: "https://facebook.com", accent: "facebook" },
+  { label: "TikTok", icon: "🎵", href: "https://www.tiktok.com", accent: "tiktok" },
+  { label: "YouTube", icon: "▶️", href: "https://www.youtube.com", accent: "youtube" },
+  { label: "GitHub", icon: "🐙", href: "https://github.com", accent: "github" },
+  { label: "LinkedIn", icon: "💼", href: "https://www.linkedin.com", accent: "linkedin" },
+];
+const SETTINGS_NODES = ["Chỉnh cấu hình sáng/tối", "Tùy chỉnh background"];
 const TOURNAMENT_NODES = ["Bài thi hỗn hợp", "Form đăng kí", "Bảng xếp hạng", "Giải thưởng"];
 const GROUP_NODES = ["Kết nối / kết bạn", "ID nhóm pass", "Nhóm riêng", "Chat với bạn bè", "Khung chat tổng"];
 const PET_NODES = ["Tự đặt tên", "Tự cấu hình", "Voice với pet", "Level pet"];
@@ -1464,48 +1471,142 @@ function MailPage({ app }) {
 }
 
 function ContactPage({ app }) {
+  const profileName = app.profileForm.fullName?.trim() || app.user?.full_name || app.user?.email?.split("@")[0] || "Vmora User";
+  const profileAvatar = app.profileForm.avatarUrl?.trim() || app.user?.avatar_url || "";
+  const profileInitials = profileName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "V";
+  const profilePublicId = app.user?.public_user_id ?? String(app.user?.id ?? "").padStart(5, "0");
+  const profilePhone = app.profileForm.phoneNumber?.trim() || app.user?.phone_number || "Chưa cập nhật";
+  const profileAddress = app.profileForm.address?.trim() || app.user?.address || "Chưa cập nhật";
+  const contactMessages = [...(app.tickets ?? [])]
+    .sort((left, right) => new Date(left.created_at ?? 0).getTime() - new Date(right.created_at ?? 0).getTime())
+    .flatMap((ticket) => {
+      const messages = [
+        {
+          key: `user-${ticket.id}`,
+          role: "user",
+          title: ticket.title,
+          content: ticket.content,
+          time: ticket.created_at,
+          status: ticket.status,
+        },
+      ];
+      if (ticket.admin_reply) {
+        messages.push({
+          key: `admin-${ticket.id}`,
+          role: "admin",
+          title: "Admin phản hồi",
+          content: ticket.admin_reply,
+          time: ticket.updated_at ?? ticket.created_at,
+          status: "answered",
+        });
+      }
+      return messages;
+    });
+
   return (
-    <SimplePage eyebrow="Liên hệ" title="Liên hệ">
-      <div className="feature-grid">
-        <Card eyebrow="Liên hệ" title={CONTACT_NODES[0]}>
-          <form className="mini-list" onSubmit={app.createContactTicket}>
-            <label className="field">
-              <span>Tiêu đề</span>
-              <input onChange={(event) => app.setContactForm((current) => ({ ...current, title: event.target.value }))} value={app.contactForm.title} />
-            </label>
-            <label className="field">
-              <span>Nội dung</span>
-              <textarea onChange={(event) => app.setContactForm((current) => ({ ...current, content: event.target.value }))} value={app.contactForm.content} />
-            </label>
-            <button className="primary-button complete-button" type="submit">
-              Gửi admin
-            </button>
-          </form>
-          <div className="mini-list">
-            {app.tickets.length === 0 ? <p>Chưa có lịch sử liên hệ.</p> : null}
-            {app.tickets.slice(0, 4).map((ticket) => (
-              <article className="stack-row" key={ticket.id}>
+    <SimplePage>
+      <section className="contact-shell">
+        <div className="contact-top-grid">
+          <section className="contact-info-card">
+            <p className="eyebrow">{CONTACT_NODES[1]}</p>
+            <h2>Liên hệ Vmora</h2>
+            <p>
+              Gặp vấn đề khi học tập hoặc sử dụng hệ thống? Hãy gửi yêu cầu cho chúng tôi — đội ngũ Vmora luôn sẵn sàng hỗ trợ bạn nhanh chóng và hiệu quả.
+            </p>
+            <div className="contact-social-inline">
+              <div className="contact-social-head">
                 <div>
-                  <strong>{ticket.title}</strong>
-                  <p>{ticket.content}</p>
-                  {ticket.admin_reply ? <p>Admin: {ticket.admin_reply}</p> : <p>Đang chờ admin trả lời.</p>}
+                  <p className="eyebrow">{CONTACT_NODES[2]}</p>
                 </div>
-                <span className={ticket.status === "answered" ? "completion-badge done" : "completion-badge"}>{ticket.status}</span>
+              </div>
+              <div className="contact-social-grid">
+                {CONTACT_SOCIAL_LINKS.map((item) => (
+                  <a
+                    className={`contact-social-link contact-social-link-${item.accent}`}
+                    href={item.href}
+                    key={item.label}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <span>{item.icon}</span>
+                    <strong>{item.label}</strong>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <aside className="contact-profile-card">
+            <div className="contact-profile-avatar">
+              {profileAvatar ? (
+                <img alt={profileName} src={profileAvatar} />
+              ) : (
+                <span>{profileInitials}</span>
+              )}
+            </div>
+            <h3>{profileName}</h3>
+            <span className="contact-profile-id">ID: {profilePublicId}</span>
+            <p>{app.user?.email}</p>
+            <div className="contact-profile-mini">
+              <span>📞 {profilePhone}</span>
+              <span>📍 {profileAddress}</span>
+            </div>
+          </aside>
+        </div>
+
+        <section className="contact-chat-card">
+          <header className="contact-chat-head">
+            <div className="contact-chat-admin">
+              <span className="contact-chat-admin-avatar">A</span>
+              <div>
+                <strong>{CONTACT_NODES[0]}</strong>
+                <p>Admin Vmora đang nhận yêu cầu hỗ trợ từ bạn</p>
+              </div>
+            </div>
+            <span className="contact-chat-status">● Online</span>
+          </header>
+
+          <div className="contact-chat-body">
+            {contactMessages.length === 0 ? (
+              <div className="contact-chat-empty">
+                <strong>Chưa có tin nhắn nào</strong>
+                <p>Hãy gửi lời nhắn đầu tiên cho admin. Phản hồi sẽ được lưu lại tại đây và trong hộp thư.</p>
+              </div>
+            ) : null}
+            {contactMessages.map((message) => (
+              <article className={`contact-chat-bubble contact-chat-bubble-${message.role}`} key={message.key}>
+                <div className="contact-chat-bubble-meta">
+                  <span>{message.role === "admin" ? "Admin Vmora" : "Bạn"}</span>
+                  <small>{message.time ? formatDateTime(message.time) : message.status}</small>
+                </div>
+                {message.title ? <strong>{message.title}</strong> : null}
+                <p>{message.content}</p>
               </article>
             ))}
           </div>
-        </Card>
 
-        <Card eyebrow="Liên hệ" title={CONTACT_NODES[1]}>
-          <p>Kênh liên hệ chính trong hệ thống là chat/ticket với admin.</p>
-          <p>Mọi phản hồi của admin sẽ quay lại hộp thư và lịch sử liên hệ.</p>
-        </Card>
-
-        <Card eyebrow="Liên hệ" title={CONTACT_NODES[2]}>
-          <p>Chưa cấu hình liên kết mạng xã hội.</p>
-          <p>Phần này chờ admin thêm link chính thức của dự án.</p>
-        </Card>
-      </div>
+          <form className="contact-chat-composer" onSubmit={app.createContactTicket}>
+            <input
+              onChange={(event) => app.setContactForm((current) => ({ ...current, title: event.target.value }))}
+              placeholder="Chủ đề ngắn..."
+              value={app.contactForm.title}
+            />
+            <div className="contact-chat-input-row">
+              <textarea
+                onChange={(event) => app.setContactForm((current) => ({ ...current, content: event.target.value }))}
+                placeholder="Nhập tin nhắn cho admin..."
+                value={app.contactForm.content}
+              />
+              <button type="submit">Gửi</button>
+            </div>
+          </form>
+        </section>
+      </section>
     </SimplePage>
   );
 }
@@ -1513,44 +1614,37 @@ function ContactPage({ app }) {
 function SettingsPage({ app }) {
   return (
     <SimplePage eyebrow="Cài đặt" title="Cài đặt">
-      <form className="course-grid" onSubmit={app.saveUserSettings}>
-        <Card eyebrow="Cài đặt" title={SETTINGS_NODES[0]}>
-          <label className="field">
-            <span>Sáng/tối</span>
-            <select onChange={(event) => app.setSettingsForm((current) => ({ ...current, themeMode: event.target.value }))} value={app.settingsForm.themeMode}>
-              <option value="light">Sáng</option>
-              <option value="dark">Tối</option>
-            </select>
-          </label>
-        </Card>
+      <form className="settings-form" onSubmit={app.saveUserSettings}>
+        <div className="course-grid">
+          <Card eyebrow="Cài đặt" title={SETTINGS_NODES[0]}>
+            <label className="field">
+              <span>Sáng/tối</span>
+              <select onChange={(event) => app.setSettingsForm((current) => ({ ...current, themeMode: event.target.value }))} value={app.settingsForm.themeMode}>
+                <option value="light">Sáng</option>
+                <option value="dark">Tối</option>
+              </select>
+            </label>
+          </Card>
 
-        <Card eyebrow="Cài đặt" title={SETTINGS_NODES[1]}>
-          <label className="field">
-            <span>Background</span>
-            <select onChange={(event) => app.setSettingsForm((current) => ({ ...current, backgroundCode: event.target.value }))} value={app.settingsForm.backgroundCode}>
-              <option value="default">Mặc định</option>
-              <option value="forest">Rừng</option>
-              <option value="sand">Cát</option>
-              <option value="sky">Trời</option>
-            </select>
-          </label>
-        </Card>
+          <Card eyebrow="Cài đặt" title={SETTINGS_NODES[1]}>
+            <label className="field">
+              <span>Background</span>
+              <select onChange={(event) => app.setSettingsForm((current) => ({ ...current, backgroundCode: event.target.value }))} value={app.settingsForm.backgroundCode}>
+                <option value="default">Mặc định</option>
+                <option value="forest">Rừng</option>
+                <option value="sand">Cát</option>
+                <option value="sky">Trời</option>
+              </select>
+            </label>
+          </Card>
+        </div>
 
-        <Card eyebrow="Cài đặt" title={SETTINGS_NODES[2]}>
-          <label className="field">
-            <span>API key Gemini</span>
-            <input
-              onChange={(event) => app.setSettingsForm((current) => ({ ...current, geminiApiKey: event.target.value }))}
-              placeholder="Nhập API key Gemini"
-              type="password"
-              value={app.settingsForm.geminiApiKey}
-            />
-          </label>
+        <div className="settings-save-row">
           <button className="primary-button complete-button" type="submit">
             Lưu cài đặt
           </button>
           {app.userSettings?.updated_at ? <p>Cập nhật: {formatDateTime(app.userSettings.updated_at)}</p> : null}
-        </Card>
+        </div>
       </form>
     </SimplePage>
   );
@@ -2325,8 +2419,8 @@ function AppRoutes({ app }) {
 
 export default function App() {
   const app = useVmoraApp();
-  const themeMode = safeClassPart(app.userSettings?.theme_mode, "light");
-  const backgroundCode = safeClassPart(app.userSettings?.background_code, "default");
+  const themeMode = safeClassPart(app.settingsForm?.themeMode || app.userSettings?.theme_mode, "light");
+  const backgroundCode = safeClassPart(app.settingsForm?.backgroundCode || app.userSettings?.background_code, "default");
 
   return (
     <main className={`app-shell app-theme-${themeMode} app-bg-${backgroundCode}`}>

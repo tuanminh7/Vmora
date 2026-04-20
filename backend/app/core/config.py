@@ -1,3 +1,5 @@
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -41,6 +43,8 @@ class Settings(BaseSettings):
     momo_store_id: str = "VmoraStore"
     momo_redirect_url: str = "http://localhost:5173"
     momo_ipn_url: str = "http://localhost:8000/api/v1/payments/momo/ipn"
+    gemini_api_keys: str = ""
+    gemini_key_cooldown_seconds: int = 300
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -57,6 +61,29 @@ class Settings(BaseSettings):
     @property
     def trusted_hosts(self) -> list[str]:
         return [item.strip() for item in self.allowed_hosts.split(",") if item.strip()]
+
+    @property
+    def gemini_api_key_pool(self) -> list[str]:
+        keys: list[str] = []
+
+        for chunk in self.gemini_api_keys.replace("\r", "\n").splitlines():
+            for item in chunk.split(","):
+                cleaned = item.strip()
+                if cleaned:
+                    keys.append(cleaned)
+
+        for index in range(1, 11):
+            cleaned = os.getenv(f"VMORA_GEMINI_API_KEY_{index}", "").strip()
+            if cleaned:
+                keys.append(cleaned)
+
+        unique_keys: list[str] = []
+        seen: set[str] = set()
+        for key in keys:
+            if key not in seen:
+                seen.add(key)
+                unique_keys.append(key)
+        return unique_keys
 
 
 settings = Settings()
