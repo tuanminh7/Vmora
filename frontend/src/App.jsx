@@ -8,6 +8,17 @@ import ExamSection from "./components/ExamSection";
 import PracticeSection from "./components/PracticeSection";
 import VmoraLanding from "./components/VmoraLanding";
 import useVmoraApp from "./hooks/useVmoraApp";
+import VocabularyFlashcardPage from "./modules/vocabulary/VocabularyFlashcardPage";
+import VocabularyLessonViewPage from "./modules/vocabulary/VocabularyLessonViewPage";
+import VocabularyQuizPage from "./modules/vocabulary/VocabularyQuizPage";
+import VocabularyTopicsPage from "./modules/vocabulary/VocabularyTopicsPage";
+import GrammarPracticePage from "./modules/grammar/GrammarPracticePage";
+import GrammarTopicsPage from "./modules/grammar/GrammarTopicsPage";
+import ListeningActivitiesPage from "./modules/listening/ListeningActivitiesPage";
+import ListeningLessonsPage from "./modules/listening/ListeningLessonsPage";
+import ListeningPracticePage from "./modules/listening/ListeningPracticePage";
+import SpeakingPlaceholderPage from "./modules/speaking/SpeakingPlaceholderPage";
+import WritingPracticePage from "./modules/writing/WritingPracticePage";
 
 const PRACTICE_SKILLS = [
   { key: "vocabulary", label: "Luyện từ vựng", path: "/on-luyen/luyen-tu-vung" },
@@ -168,7 +179,7 @@ const DEFAULT_PRACTICE_PATH = PRACTICE_SKILLS[0].path;
 const COURSE_HUB_ITEMS = [
   {
     path: "/bang-xep-hang",
-    icon: "📊",
+    icon: "",
     title: "Bảng xếp hạng",
     description: "Xem vị trí học tập và điểm số của bạn trong cộng đồng.",
     tone: "blue",
@@ -182,21 +193,21 @@ const COURSE_HUB_ITEMS = [
   },
   {
     path: "/tien-do",
-    icon: "📈",
+    icon: "",
     title: "Tiến độ",
     description: "Theo dõi phần trăm hoàn thành của từng khóa học.",
     tone: "green",
   },
   {
     path: "/nhom-chat",
-    icon: "💬",
+    icon: "",
     title: "Nhóm chat",
     description: "Kết nối bạn bè, nhóm riêng và cộng đồng học tập.",
     tone: "cyan",
   },
   {
     path: "/lo-trinh",
-    icon: "🚦",
+    icon: "",
     title: "Lộ trình",
     description: "Chọn chặng, mở bài học và đi tiếp từng bước rõ ràng.",
     tone: "pink",
@@ -248,7 +259,7 @@ const LEARNING_HUB_ITEMS = [
 ];
 const PRACTICE_HUB_ITEMS = [
   {
-    path: "/on-luyen/luyen-tu-vung",
+    path: "/luyen-tu-vung",
     skillKey: "vocabulary",
     icon: "🔠",
     title: "Luyện từ vựng",
@@ -256,7 +267,7 @@ const PRACTICE_HUB_ITEMS = [
     tone: "blue",
   },
   {
-    path: "/on-luyen/luyen-viet",
+    path: "/luyen-viet",
     skillKey: "writing",
     icon: "✍️",
     title: "Luyện viết",
@@ -264,7 +275,7 @@ const PRACTICE_HUB_ITEMS = [
     tone: "pink",
   },
   {
-    path: "/on-luyen/luyen-nghe",
+    path: "/luyen-nghe",
     skillKey: "listening",
     icon: "🎧",
     title: "Luyện nghe",
@@ -272,7 +283,7 @@ const PRACTICE_HUB_ITEMS = [
     tone: "cyan",
   },
   {
-    path: "/on-luyen/luyen-noi",
+    path: "/luyen-noi",
     skillKey: "speaking",
     icon: "🎙️",
     title: "Luyện nói",
@@ -280,7 +291,7 @@ const PRACTICE_HUB_ITEMS = [
     tone: "gold",
   },
   {
-    path: "/on-luyen/ngu-phap",
+    path: "/ngu-phap",
     skillKey: "grammar",
     icon: "🧩",
     title: "Ngữ pháp",
@@ -294,6 +305,13 @@ const LANGUAGE_LABELS = {
   ja: "T.Nhật",
   zh: "T.Trung",
   ko: "T.HÀN",
+};
+const LANGUAGE_FLAGS = {
+  de: "🇩🇪",
+  en: "🇬🇧",
+  ja: "🇯🇵",
+  zh: "🇨🇳",
+  ko: "🇰🇷",
 };
 const LANGUAGE_SHOWCASE_ITEMS = [
   { code: "en", label: "Tiếng Anh", sub: "English", image: "/images/anh.svg" },
@@ -342,7 +360,7 @@ const CONTACT_ADMIN_PROFILE = {
   avatarUrl: "",
 };
 const SETTINGS_NODES = ["Chỉnh cấu hình sáng/tối", "Tùy chỉnh background"];
-const TOURNAMENT_NODES = ["Bài thi hỗn hợp", "Form đăng kí", "Bảng xếp hạng", "Giải thưởng"];
+const TOURNAMENT_NODES = ["Bài thi", "Đăng ký", "Xếp hạng", "Thưởng"];
 const GROUP_NODES = ["Kết nối / kết bạn", "ID nhóm pass", "Nhóm riêng", "Chat với bạn bè", "Khung chat tổng"];
 const PET_NODES = ["Tự đặt tên", "Tự cấu hình", "Voice với pet", "Level pet"];
 const NOTE_NODES = ["Lưu từ vựng hay bài làm", "Lịch / nhắc nhở", "Duy trì chuỗi"];
@@ -352,6 +370,10 @@ const COMMUNITY_FRIEND_GOALS = ["Tất cả", "Giao tiếp", "Luyện thi", "H�
 
 function getLanguageDisplayName(languageCode) {
   return LANGUAGE_SHOWCASE_ITEMS.find((item) => item.code === languageCode)?.label ?? LANGUAGE_LABELS[languageCode] ?? "Đa ngôn ngữ";
+}
+
+function getLanguageFlag(languageCode) {
+  return LANGUAGE_FLAGS[languageCode] ?? "🌐";
 }
 
 function getRoadmapPreviewLabels(languageCode, branch) {
@@ -760,7 +782,7 @@ function TopNav({ app }) {
                   >
                     {renderNavIcon(icon)}
                     <span className="topnav-link-label">{label}</span>
-                    <span className="topnav-dropdown-caret">v</span>
+                    <span aria-hidden="true" className="topnav-dropdown-caret">▾</span>
                   </button>
 
                   {courseMenuOpen && typeof document !== "undefined"
@@ -780,7 +802,7 @@ function TopNav({ app }) {
                                 handleCourseMenuItemClick(item.path);
                               }}
                             >
-                              <span className="topnav-dropdown-item-icon">{item.icon}</span>
+                              {item.icon ? <span className="topnav-dropdown-item-icon">{item.icon}</span> : null}
                               <span className="topnav-dropdown-item-label">{item.title}</span>
                             </a>
                           ))}
@@ -972,7 +994,7 @@ function MenuHubPage({ eyebrow, title, summary, items }) {
             >
               <div className="menu-hub-item-main">
                 <span className="menu-hub-item-order">{String(index + 1).padStart(2, "0")}</span>
-                <span className="menu-hub-item-icon">{item.icon}</span>
+                {item.icon ? <span className="menu-hub-item-icon">{item.icon}</span> : null}
                 <div className="menu-hub-item-copy">
                   <h3>{item.title}</h3>
                   <p>{item.description}</p>
@@ -1046,6 +1068,28 @@ async function handlePackageSelection(app, navigate, packageItem) {
   if (result?.redirectToPractice) {
     navigate(`/on-luyen?branch=${packageItem.is_free ? "free" : "paid"}`);
   }
+}
+
+async function handleFreePracticeEntry(app, navigate, freePackage) {
+  if (app.canOpenPractice) {
+    navigate("/on-luyen?branch=free");
+    return;
+  }
+
+  if (freePackage) {
+    const result = await app.packageAction(freePackage);
+    if (result?.externalUrl) {
+      window.open(result.externalUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (result?.ok) {
+      navigate("/on-luyen?branch=free");
+      return;
+    }
+    return;
+  }
+
+  navigate("/on-luyen?branch=free");
 }
 
 function formatDateTime(value) {
@@ -1871,7 +1915,7 @@ function RoadmapPage({ app }) {
         <Card
           action={
             freePackage ? (
-              <button className="primary-button complete-button" onClick={() => handlePackageSelection(app, navigate, freePackage)} type="button">
+              <button className="primary-button complete-button" onClick={() => handleFreePracticeEntry(app, navigate, freePackage)} type="button">
                 Kích hoạt khóa free
               </button>
             ) : null
@@ -1928,7 +1972,7 @@ function RoadmapPage({ app }) {
           <p>Chọn khóa free, mua khóa phù hợp hoặc làm bài test tư vấn. Sau khi có quyền học, bạn sẽ vào Học tập để học thật.</p>
           <div className="lesson-detail-actions">
             {freePackage ? (
-              <button className="primary-button complete-button" onClick={() => handlePackageSelection(app, navigate, freePackage)} type="button">
+              <button className="primary-button complete-button" onClick={() => handleFreePracticeEntry(app, navigate, freePackage)} type="button">
                 Bắt đầu học ngay
               </button>
             ) : (
@@ -2127,17 +2171,13 @@ function RoadmapPageCinematic({ app }) {
                 </div>
                 <button
                   className="roadmap-step-action"
-                  onClick={() => {
+                  onClick={async () => {
                     setSelectedRoadmapKey("free");
-                    if (freePackage) {
-                      handlePackageSelection(app, navigate, freePackage);
-                      return;
-                    }
-                    navigate("/khoa-hoc");
+                    await handleFreePracticeEntry(app, navigate, freePackage);
                   }}
                   type="button"
                 >
-                  {freePackage ? "K\u00edch ho\u1ea1t ngay" : "Xem kh\u00f3a free"}
+                  {"V\u00e0o \u00f4n luy\u1ec7n free"}
                 </button>
               </article>
             </div>
@@ -2264,7 +2304,7 @@ function RoadmapPageCinematic({ app }) {
             </p>
             <div className="lesson-detail-actions">
               {freePackage ? (
-                <button className="primary-button complete-button" onClick={() => handlePackageSelection(app, navigate, freePackage)} type="button">
+                <button className="primary-button complete-button" onClick={() => handleFreePracticeEntry(app, navigate, freePackage)} type="button">
                   {"B\u1eaft \u0111\u1ea7u h\u1ecdc ngay"}
                 </button>
               ) : (
@@ -2278,7 +2318,7 @@ function RoadmapPageCinematic({ app }) {
             <h2>{`Đã mở quyền học ${currentLanguageName}`}</h2>
             <p>{`Từ lộ trình ${currentLanguageName}, bạn có thể đi thẳng vào nhánh ôn luyện free hoặc nhánh ôn luyện mua.`}</p>
             <div className="lesson-detail-actions">
-              <button className="primary-button complete-button" onClick={() => navigate("/on-luyen?branch=free")} type="button">
+              <button className="primary-button complete-button" onClick={() => handleFreePracticeEntry(app, navigate, freePackage)} type="button">
                 Vào nhánh free
               </button>
               {app.hasPaidPracticeAccess ? (
@@ -3056,6 +3096,7 @@ function RankingPage({ app }) {
             <div className="ranking-top50-table-row ranking-top50-table-head">
               <span>Hạng</span>
               <span>Thành viên</span>
+              <span>Cờ</span>
               <span>Điểm</span>
               <span>Hoàn thành</span>
               <span>Thi</span>
@@ -3065,6 +3106,9 @@ function RankingPage({ app }) {
               <div className={`ranking-top50-table-row ${item.rank <= 6 ? "ranking-top50-table-row-highlight" : ""}`} key={`${item.user_id}-${item.rank}`}>
                 <span>#{item.rank}</span>
                 <span>{item.user_name ?? "Người chơi ẩn danh"}</span>
+                <span className="leaderboard-language-flag" title={getLanguageDisplayName(item.language_code)}>
+                  {getLanguageFlag(item.language_code)}
+                </span>
                 <span>{item.score ?? 0}</span>
                 <span>{item.completed_lessons ?? 0}</span>
                 <span>{item.exam_attempts ?? 0}</span>
@@ -3150,6 +3194,7 @@ function GoldenBoardPage({ app }) {
             <div className="golden-board-row golden-board-row-head">
               <span>Hạng</span>
               <span>Thành viên</span>
+              <span>Cờ</span>
               <span>Điểm</span>
               <span>Hoàn thành</span>
               <span>Thi</span>
@@ -3159,6 +3204,9 @@ function GoldenBoardPage({ app }) {
               <div className={`golden-board-row ${index < 6 ? "golden-board-row-highlight" : ""}`} key={`${item.user_id}-${index}`}>
                 <span>#{index + 1}</span>
                 <span>{item.user_name ?? "Người chơi ẩn danh"}</span>
+                <span className="leaderboard-language-flag" title={getLanguageDisplayName(item.language_code)}>
+                  {getLanguageFlag(item.language_code)}
+                </span>
                 <span>{item.score ?? 0}</span>
                 <span>{item.completed_lessons ?? 0}</span>
                 <span>{item.exam_attempts ?? 0}</span>
@@ -3224,11 +3272,8 @@ function TournamentPage({ app }) {
       <section className="tournament-shell">
         <div className="tournament-hero">
           <div>
-            <p className="eyebrow">Tổng quan tuần này</p>
+            <p className="eyebrow">Giải đấu tuần</p>
             <h2>{selectedTournament?.title ?? "Giải đấu tuần"}</h2>
-            <p className="tournament-hero-copy">
-              {selectedTournament?.description ?? "Tham gia bài thi hỗn hợp theo tuần, leo hạng trên bảng xếp hạng và nhận huy hiệu khi đạt top cao."}
-            </p>
           </div>
           <div className="tournament-hero-chips">
             <span>{selectedTournament?.duration_minutes ?? 0} phút</span>
@@ -3278,9 +3323,9 @@ function TournamentPage({ app }) {
             <p className="tournament-register-copy">
               {selectedTournament?.is_registered
                 ? selectedTournament?.room_status === "in_progress"
-                  ? "Admin đã mở phòng thi. Vào phòng làm bài để tích điểm và leo hạng ngay."
-                  : "Bạn đã vào phòng chờ. Khi admin bấm bắt đầu, hệ thống sẽ tự chuyển sang phòng thi."
-                : "Đăng ký để mở bài thi hỗn hợp và tham gia bảng xếp hạng của tuần này."}
+                  ? "Phòng thi đã mở."
+                  : "Bạn đang ở phòng chờ."
+                : "Đăng ký để tham gia."}
             </p>
             <span className={selectedTournament?.is_registered ? "completion-badge done" : "completion-badge"}>
               {selectedTournament?.is_registered
@@ -3339,7 +3384,6 @@ function TournamentPage({ app }) {
         <article className="tournament-skill-card">
           <p className="eyebrow">Phân loại kỹ năng</p>
           <h3>Bài thi hỗn hợp gồm 4 kỹ năng</h3>
-          <p>Mỗi kỹ năng chiếm 25% tổng điểm. Hoàn thành cả 4 để đạt điểm tối đa.</p>
           <div className="tournament-skill-row">
             {tournamentSkills.map((skill) => (
               <span className={`tournament-skill-chip tournament-skill-chip-${skill.tone}`} key={skill.label}>
@@ -3889,7 +3933,14 @@ function TournamentExamRoomPage({ app }) {
 
     const speakRound = (round) => {
       const utterance = new window.SpeechSynthesisUtterance(question.audio_text);
-      utterance.lang = "en-US";
+      const langMap = {
+        zh: "zh-CN",
+        en: "en-US",
+        ja: "ja-JP",
+        ko: "ko-KR",
+        de: "de-DE",
+      };
+      utterance.lang = langMap[selectedTournament?.language_code] ?? "en-US";
       utterance.rate = 0.94;
       utterance.pitch = 1;
       utterance.onend = () => {
@@ -5718,9 +5769,29 @@ function PracticePage({ app }) {
   const activeSkill = PRACTICE_SKILLS.find((item) => item.path === location.pathname) ?? PRACTICE_SKILLS[0];
   const activeBranch = normalizePracticeBranch(searchParams.get("branch"), app.hasPaidPracticeAccess);
   const isVocabularyPractice = activeSkill.key === "vocabulary";
+  const isWritingPractice = activeSkill.key === "writing";
+  const isListeningPractice = activeSkill.key === "listening";
+  const isSpeakingPractice = activeSkill.key === "speaking";
+  const isGrammarPractice = activeSkill.key === "grammar";
 
   if (isVocabularyPractice) {
-    return <VocabularyPracticeDemo app={app} branch={activeBranch} />;
+    return <Navigate replace to={`/luyen-tu-vung${location.search}`} />;
+  }
+
+  if (isWritingPractice) {
+    return <Navigate replace to={`/luyen-viet${location.search}`} />;
+  }
+
+  if (isListeningPractice) {
+    return <Navigate replace to={`/luyen-nghe${location.search}`} />;
+  }
+
+  if (isSpeakingPractice) {
+    return <Navigate replace to={`/luyen-noi${location.search}`} />;
+  }
+
+  if (isGrammarPractice) {
+    return <Navigate replace to={`/ngu-phap${location.search}`} />;
   }
 
   const practiceActivities = filterPracticeActivitiesByBranch(
@@ -5865,6 +5936,39 @@ function PracticePage({ app }) {
   );
 }
 
+function PracticeAccessGate({ app, children }) {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  if (!app.user) {
+    return <Navigate replace to="/dang-nhap" />;
+  }
+
+  if (!app.user.learning_language_code) {
+    return <Navigate replace to="/chon-ngon-ngu" />;
+  }
+
+  if (!app.entitlementsLoaded) {
+    return (
+      <SimplePage eyebrow="Ôn luyện" title="Đang kiểm tra quyền học">
+        <p>Hệ thống đang đồng bộ quyền học của bạn.</p>
+      </SimplePage>
+    );
+  }
+
+  if (!app.canOpenPractice) {
+    return <Navigate replace to="/khoa-hoc" />;
+  }
+
+  if (searchParams.get("branch") === "paid" && !app.hasPaidPracticeAccess) {
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set("branch", "free");
+    return <Navigate replace to={`${location.pathname}?${nextSearchParams.toString()}`} />;
+  }
+
+  return children;
+}
+
 function ExamPage({ app }) {
   return (
     <ExamSection
@@ -5942,6 +6046,7 @@ function AdminPage({ app }) {
 function AppRoutes({ app }) {
   const hasUser = Boolean(app.user);
   const hasLanguage = Boolean(app.user?.learning_language_code);
+  const practiceRoute = (element) => <PracticeAccessGate app={app}>{element}</PracticeAccessGate>;
 
   return (
     <Routes>
@@ -5972,10 +6077,25 @@ function AppRoutes({ app }) {
       <Route element={hasLanguage ? <PetPage app={app} /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} path="/pet" />
       <Route element={hasLanguage ? <ExamPage app={app} /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} path="/thi" />
       <Route element={hasLanguage ? <NotePage app={app} /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} path="/so-tay" />
+      <Route element={practiceRoute(<VocabularyTopicsPage app={app} />)} path="/luyen-tu-vung" />
+      <Route element={practiceRoute(<WritingPracticePage app={app} />)} path="/luyen-viet" />
+      <Route element={practiceRoute(<SpeakingPlaceholderPage />)} path="/luyen-noi" />
+      <Route element={practiceRoute(<GrammarTopicsPage app={app} />)} path="/ngu-phap" />
+      <Route element={practiceRoute(<GrammarPracticePage app={app} />)} path="/ngu-phap/:lessonId" />
+      <Route element={practiceRoute(<ListeningActivitiesPage app={app} />)} path="/luyen-nghe" />
+      <Route element={practiceRoute(<ListeningLessonsPage activityType="audio_choice" app={app} />)} path="/luyen-nghe/audio-choice" />
+      <Route element={practiceRoute(<ListeningLessonsPage activityType="audio_write" app={app} />)} path="/luyen-nghe/audio-write" />
+      <Route element={practiceRoute(<ListeningLessonsPage activityType="video_choice" app={app} />)} path="/luyen-nghe/video-choice" />
+      <Route element={practiceRoute(<ListeningPracticePage activityType="audio_choice" app={app} />)} path="/luyen-nghe/audio-choice/:lessonId" />
+      <Route element={practiceRoute(<ListeningPracticePage activityType="audio_write" app={app} />)} path="/luyen-nghe/audio-write/:lessonId" />
+      <Route element={practiceRoute(<ListeningPracticePage activityType="video_choice" app={app} />)} path="/luyen-nghe/video-choice/:lessonId" />
+      <Route element={practiceRoute(<VocabularyLessonViewPage app={app} />)} path="/luyen-tu-vung/:lessonId/xem" />
+      <Route element={practiceRoute(<VocabularyFlashcardPage app={app} />)} path="/luyen-tu-vung/:lessonId/lat-the" />
+      <Route element={practiceRoute(<VocabularyQuizPage app={app} />)} path="/luyen-tu-vung/:lessonId/trac-nghiem" />
       <Route element={hasLanguage ? <VocabularyBankPage app={app} /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} path="/kho-tu-vung" />
-      <Route element={hasLanguage ? <PracticeHubPage app={app} /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} path="/on-luyen" />
+      <Route element={practiceRoute(<PracticeHubPage app={app} />)} path="/on-luyen" />
       {PRACTICE_PATHS.map((path) => (
-        <Route element={hasLanguage ? <PracticePage app={app} /> : <Navigate replace to={hasUser ? "/chon-ngon-ngu" : "/dang-nhap"} />} key={path} path={path} />
+        <Route element={practiceRoute(<PracticePage app={app} />)} key={path} path={path} />
       ))}
 
       <Route element={<AdminPage app={app} />} path="/admin" />
@@ -5986,13 +6106,15 @@ function AppRoutes({ app }) {
 
 export default function App() {
   const app = useVmoraApp();
+  const location = useLocation();
   const themeMode = safeClassPart(app.settingsForm?.themeMode || app.userSettings?.theme_mode, "light");
   const backgroundCode = safeClassPart(app.settingsForm?.backgroundCode || app.userSettings?.background_code, "default");
+  const isLandingRoute = location.pathname === "/" || location.pathname === "/trang-chu";
 
   return (
     <main className={`app-shell app-theme-${themeMode} app-bg-${backgroundCode}`}>
       <TopNav app={app} />
-      <div className="page-body">
+      <div className={isLandingRoute ? "page-body page-body-landing" : "page-body"}>
         <AppRoutes app={app} />
       </div>
       <Footer app={app} />

@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { ADMIN_TEMPLATES, buildTemplatePayload } from "../adminTemplates";
+import {
+  ADMIN_TEMPLATES,
+  PRACTICE_ADMIN_PRESETS,
+  buildPracticeAdminPreset,
+  buildTemplatePayload,
+  detectPracticePresetKey,
+  resolvePracticePresetByActivityType,
+  syncPracticeAdminLanguage,
+  syncPracticeAdminPreset,
+  validatePracticeAdminPayload,
+} from "../adminTemplates";
 
 const ADMIN_AREAS = [
   { key: "dashboard", label: "Bảng điều khiển", hint: "Tổng quan hệ thống" },
@@ -101,7 +111,7 @@ function getRecordChips(item, tab) {
   const chips = [item.id ? `ID ${item.id}` : null];
   if (tab === "courses") chips.push(item.language_code, item.is_free ? "Free" : "Mua");
   if (tab === "lessons") chips.push(`Chương ${item.section_id}`, `${item.estimated_minutes} phút`);
-  if (tab === "practice") chips.push(item.language_code, item.activity_type, item.is_active ? "Đang mở" : "Đã tắt");
+  if (tab === "practice") chips.push(item.language_code, item.payload?.practice_skill, item.activity_type, item.is_active ? "Đang mở" : "Đã tắt");
   if (tab === "packages") chips.push(item.language_code, item.is_free ? "Free" : "Trả phí");
   if (tab === "exams") chips.push(item.language_code, item.level_code);
   if (["levels", "roadmaps", "vocabulary"].includes(tab)) chips.push(item.language_code);
@@ -285,6 +295,22 @@ export default function AdminSection({
   function handleFieldChange(field, value) {
     const basePayload = safeJsonParse(adminJson, {});
     setJsonError("");
+
+    if (adminTab === "practice" && field.key === "language_code") {
+      const nextPayload = syncPracticeAdminLanguage(basePayload, value);
+      setAdminJson(JSON.stringify(nextPayload, null, 2));
+      return;
+    }
+
+    if (adminTab === "practice" && field.key === "activity_type") {
+      const matchedPresetKey = resolvePracticePresetByActivityType(basePayload, value);
+      if (matchedPresetKey) {
+        const nextPayload = syncPracticeAdminPreset({ ...basePayload, activity_type: value }, matchedPresetKey);
+        setAdminJson(JSON.stringify(nextPayload, null, 2));
+        return;
+      }
+    }
+
     setAdminJson(JSON.stringify({ ...basePayload, [field.key]: parseFieldValue(field, value) }, null, 2));
   }
 
@@ -296,12 +322,125 @@ export default function AdminSection({
     }
   }
 
+  function applyPracticePreset(presetKey) {
+    const currentPayload = safeJsonParse(adminJson, {}) ?? {};
+    const nextPayload = syncPracticeAdminPreset(
+      {
+        ...buildPracticeAdminPreset(presetKey, {
+          language_code: currentPayload.language_code || "en",
+          lesson_id: currentPayload.lesson_id ?? 1,
+          order_index: currentPayload.order_index ?? 1,
+          is_free: currentPayload.is_free ?? true,
+          is_active: currentPayload.is_active ?? true,
+        }),
+        ...currentPayload,
+      },
+      presetKey,
+    );
+    setJsonError("");
+    setAdminJson(JSON.stringify(nextPayload, null, 2));
+  }
+
+  function renderPracticePresetPanel() {
+    if (adminTab !== "practice") return null;
+
+    const currentPresetKey = detectPracticePresetKey(formPayload) || PRACTICE_ADMIN_PRESETS[0].key;
+    const currentSkill = formPayload.payload?.practice_skill || "vocabulary";
+    const currentActivityType = formPayload.activity_type || "flashcard";
+    const validation = validatePracticeAdminPayload(formPayload);
+
+    return (
+      <div className="admin-panel-stack">
+        <div className="admin-content-head">
+          <div>
+            <p className="eyebrow">Preset practice</p>
+            <h3>Chọn nhanh schema đúng cho từng skill</h3>
+          </div>
+        </div>
+        <div className="admin-inline-form">
+          <label className="field">
+            <span>Preset đang chọn</span>
+            <select onChange={(event) => applyPracticePreset(event.target.value)} value={currentPresetKey}>
+              {PRACTICE_ADMIN_PRESETS.map((preset) => (
+                <option key={preset.key} value={preset.key}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Skill hiện tại</span>
+            <input disabled readOnly value={currentSkill} />
+          </label>
+          <div className="admin-record-actions">
+            <button className="ghost-button mini-button" onClick={() => applyPracticePreset(currentPresetKey)} type="button">
+              Đồng bộ preset
+            </button>
+          </div>
+        </div>
+        <div className="admin-record-grid">
+          {PRACTICE_ADMIN_PRESETS.map((preset) => {
+            const isActive = preset.key === currentPresetKey || (preset.skillKey === currentSkill && preset.activityType === currentActivityType);
+
+            return (
+              <article className="admin-record-card" key={preset.key}>
+                <div className="admin-record-card-head">
+                  <h4>{preset.label}</h4>
+                  {isActive ? <span className="admin-chip">Đang dùng</span> : null}
+                </div>
+                <p>{preset.description}</p>
+                <div className="admin-record-chips">
+                  <span className="admin-chip">{preset.skillKey}</span>
+                  <span className="admin-chip">{preset.activityType}</span>
+                </div>
+                <div className="admin-record-actions">
+                  <button className="ghost-button mini-button" onClick={() => applyPracticePreset(preset.key)} type="button">
+                    Dùng preset
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <div className="admin-record-chips">
+          <span className="admin-chip">`payload.practice_skill` quyết định module ôn luyện nào sẽ đọc bài.</span>
+          <span className="admin-chip">Vocabulary module hiện lấy nguồn từ activity_type `flashcard`.</span>
+          <span className="admin-chip">Listening video-choice nên dùng `quiz` + `payload.video_url`.</span>
+          <span className="admin-chip">Grammar nên tạo nhiều activity quiz cùng `lesson_id` để gom thành 1 bài.</span>
+        </div>
+        {validation.errors.length ? (
+          <div className="admin-error">
+            <strong>Chưa thể lưu:</strong> {validation.errors.join(" ")}
+          </div>
+        ) : null}
+        {validation.warnings.length ? (
+          <div className="admin-record-chips">
+            {validation.warnings.map((warning) => (
+              <span className="admin-chip" key={warning}>{warning}</span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   function handleSubmit(event) {
-    if (!safeJsonParse(adminJson, null)) {
+    const parsedJson = safeJsonParse(adminJson, null);
+    if (!parsedJson) {
       event.preventDefault();
       setJsonError("JSON chưa hợp lệ.");
       return;
     }
+
+    if (adminTab === "practice") {
+      const validation = validatePracticeAdminPayload(parsedJson);
+      if (!validation.ok) {
+        event.preventDefault();
+        setJsonError(validation.errors.join(" "));
+        return;
+      }
+    }
+
     onCreateItem(event);
   }
 
@@ -541,6 +680,8 @@ export default function AdminSection({
               </div>
             ) : null}
 
+            {renderPracticePresetPanel()}
+
             <div className="admin-form-grid">
               {template?.fields.map((field) => (
                 <label className={field.type === "json" || field.type === "textarea" ? "field admin-wide-field" : "field"} key={field.key}>
@@ -556,6 +697,14 @@ export default function AdminSection({
                       onChange={(event) => setJsonDrafts((current) => ({ ...current, [field.key]: event.target.value }))}
                       value={jsonDrafts[field.key] ?? fieldValueToString(field, formPayload[field.key])}
                     />
+                  ) : field.type === "select" ? (
+                    <select onChange={(event) => handleFieldChange(field, event.target.value)} value={fieldValueToString(field, formPayload[field.key])}>
+                      {(field.options ?? []).map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   ) : field.type === "textarea" ? (
                     <textarea className="text-editor" onChange={(event) => handleFieldChange(field, event.target.value)} value={fieldValueToString(field, formPayload[field.key])} />
                   ) : (
@@ -1091,7 +1240,7 @@ export default function AdminSection({
 
                       <div className="admin-package-course-actions">
                         <span className="admin-package-course-draft">
-                          IDs: {selectedIds.length ? selectedIds.join(", ") : "chua chon"}
+                          IDs: {selectedIds.length ? selectedIds.join(", ") : "chưa chọn"}
                         </span>
                         <button className="ghost-button mini-button" onClick={() => onSavePackageCourses(item.id, selectedIds)} type="button">
                           {activePackageConfig.saveLabel}
@@ -1309,13 +1458,13 @@ export default function AdminSection({
               <span>Loai gui</span>
               <select onChange={(event) => setNotificationForm((current) => ({ ...current, notificationType: event.target.value }))} value={notificationForm.notificationType}>
                 <option value="reward">Qua</option>
-                <option value="admin">Tin nhan</option>
+                <option value="admin">Tin nhắn</option>
                 <option value="achievement">Huy hieu</option>
                 <option value="study_reminder">Nhac hoc</option>
               </select>
             </label>
             <label className="field">
-              <span>Nhom nhan</span>
+              <span>Nhóm nhận</span>
               <select onChange={(event) => setNotificationForm((current) => ({ ...current, targetType: event.target.value, targetValue: "" }))} value={notificationForm.targetType}>
                 <option value="user">Theo user ID</option>
                 <option value="all">Tat ca</option>
@@ -1410,13 +1559,13 @@ export default function AdminSection({
               </label>
               <div className="admin-record-actions">
                 <button className="ghost-button mini-button" onClick={() => onAnswerTicket(item.id)} type="button">
-                  Tra loi mau
+                  Trả lời mẫu
                 </button>
                 <button className="ghost-button mini-button" onClick={() => onUpdateTicketWorkflow(item.id, { status: "closed" })} type="button">
-                  Dong yeu cau
+                  Đóng yêu cầu
                 </button>
                 <button className="ghost-button mini-button" onClick={() => onUpdateTicketWorkflow(item.id, { assigned_admin_id: null, status: "open" })} type="button">
-                  Bo phu trach
+                  Bỏ phụ trách
                 </button>
               </div>
             </article>

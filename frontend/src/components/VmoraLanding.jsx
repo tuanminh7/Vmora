@@ -138,6 +138,7 @@ export function HeroSection({ app, languages }) {
       <div aria-hidden="true" className="cinematic-blob cinematic-blob-b" />
       <div aria-hidden="true" className="cinematic-blob cinematic-blob-c" />
 
+      <div className="cinematic-hero-inner">
       <div className="cinematic-hero-copy">
         <motion.div
           className="hero-badge"
@@ -181,15 +182,18 @@ export function HeroSection({ app, languages }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.78, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         >
-          <motion.button
-            className="hero-cta-primary"
-            whileHover={{ scale: 1.05, boxShadow: "0 18px 42px rgba(99, 102, 241, 0.38)" }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => navigate(startPath)}
-            type="button"
-          >
-            {app.user ? "Vào học ngay" : "Bắt đầu miễn phí"}
-          </motion.button>
+          <div className="hero-primary-cluster">
+            <motion.button
+              className="hero-cta-primary"
+              whileHover={{ scale: 1.05, boxShadow: "0 18px 42px rgba(99, 102, 241, 0.38)" }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate(startPath)}
+              type="button"
+            >
+              {app.user ? "Vào học ngay" : "Bắt đầu miễn phí"}
+            </motion.button>
+            <span className="hero-actions-note">5 ngôn ngữ đang mở</span>
+          </div>
           {!app.user ? (
             <motion.button
               className="hero-cta-secondary"
@@ -205,6 +209,7 @@ export function HeroSection({ app, languages }) {
       </div>
 
       <LanguageCards languages={languages} />
+      </div>
     </section>
   );
 }
@@ -239,11 +244,6 @@ export function LanguageCards({ languages }) {
           </motion.article>
         ))}
       </motion.div>
-      <div className="language-showcase-head">
-        <div>
-          <p className="eyebrow">5 ngôn ngữ đang mở</p>
-        </div>
-      </div>
     </section>
   );
 }
@@ -255,7 +255,7 @@ export function StatsSection() {
       <div className="cinematic-testimonial-grid">
         {TESTIMONIALS.map((item) => (
           <motion.article
-            className="home-proof-card"
+            className="home-proof-card cinematic-proof-card"
             key={item.name}
             initial={{ opacity: 0, y: 28 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -270,7 +270,7 @@ export function StatsSection() {
       </div>
       <div className="cinematic-stat-grid">
         {STATS.map((item) => (
-          <article className="home-impact-card" key={item.label}>
+          <article className="home-impact-card cinematic-impact-card" key={item.label}>
             <strong><CountUp end={item.value} suffix={item.suffix} /></strong>
             <span>{item.label}</span>
           </article>

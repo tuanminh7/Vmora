@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
@@ -273,7 +273,7 @@ def parse_reminder_datetime(value: str) -> datetime:
     try:
         parsed = datetime.fromisoformat(value)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail="Thá»i gian nháº¯c nhá»Ÿ khÃ´ng há»£p lá»‡") from exc
+        raise HTTPException(status_code=422, detail="Thời gian nhắc nhở không hợp lệ") from exc
 
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)
@@ -390,7 +390,7 @@ async def ensure_friend_link(session: Any, *, user_id: int, friend_user_id: int)
     friend_result = await session.execute(select(User).where(User.id == friend_user_id))
     friend = friend_result.scalar_one_or_none()
     if friend is None:
-        raise HTTPException(status_code=404, detail="Nguoi dung khong ton tai")
+        raise HTTPException(status_code=404, detail="Người dùng không tồn tại")
 
     link_result = await session.execute(
         select(FriendLink).where(
@@ -400,7 +400,7 @@ async def ensure_friend_link(session: Any, *, user_id: int, friend_user_id: int)
         )
     )
     if link_result.scalar_one_or_none() is None:
-        raise HTTPException(status_code=403, detail="Ban can ket ban truoc khi nhan tin")
+        raise HTTPException(status_code=403, detail="Bạn cần kết bạn trước khi nhắn tin")
 
     return friend
 
@@ -777,21 +777,41 @@ def build_tournament_leaderboard_rows(attempts: list[TournamentAttempt]) -> list
     return rows
 
 
+def is_human_rights_tournament_blueprint_candidate(tournament: Tournament) -> bool:
+    questions = list(tournament.questions or [])
+    if not questions:
+        return True
+
+    passage_ids = {question.get("passage_id") for question in questions if question.get("passage_id")}
+    if passage_ids.intersection({"reading-1", "reading-2"}):
+        return True
+
+    sample_prompts = {
+        "Choose the correct sentence: Everyone ___ equal before the law.",
+        "What was the center's original goal?",
+    }
+    prompts = {str(question.get("prompt", "")) for question in questions[:12]}
+    return bool(prompts.intersection(sample_prompts))
+
+
 def apply_human_rights_tournament_blueprint(tournament: Tournament) -> bool:
+    if not is_human_rights_tournament_blueprint_candidate(tournament):
+        return False
+
     questions = build_human_rights_tournament_questions()
-    title = "Giáº£i Ä‘áº¥u quyá»n con ngÆ°á»i tuáº§n nÃ y"
+    title = "Giải đấu quyền con người tuần này"
     description = (
-        "BÃ i thi 50 cÃ¢u theo chá»§ Ä‘á» quyá»n con ngÆ°á»i, gá»“m ngá»¯ phÃ¡p, tá»« vá»±ng, nghe vÃ  Ä‘á»c hiá»ƒu Ä‘á»ƒ xáº¿p háº¡ng toÃ n server."
+        "Bài thi 50 câu theo chủ đề quyền con người, gồm ngữ pháp, từ vựng, nghe và đọc hiểu để xếp hạng toàn server."
     )
-    reward_title = "Huy hiá»‡u NhÃ¢n quyá»n tuáº§n"
-    reward_description = "Top cao nháº­n huy hiá»‡u giáº£i Ä‘áº¥u, Ä‘iá»ƒm thÆ°á»Ÿng vÃ  vá»‹ trÃ­ ná»•i báº­t trÃªn báº£ng xáº¿p háº¡ng."
+    reward_title = "Huy hiệu Nhân quyền tuần"
+    reward_description = "Top cao nhận huy hiệu giải đấu, điểm thưởng và vị trí nổi bật trên bảng xếp hạng."
     current_questions = list(tournament.questions or [])
     current_listening_audio_count = sum(
         1 for question in current_questions if question.get("section") == "listening" and question.get("audio_text")
     )
     should_refresh = (
         len(current_questions) != len(questions)
-        or "quyá»n con ngÆ°á»i" not in (tournament.title or "").lower()
+        or "quyền con người" not in (tournament.title or "").lower()
         or tournament.duration_minutes != 50
         or current_listening_audio_count != 1
     )
@@ -810,12 +830,12 @@ def apply_human_rights_tournament_blueprint(tournament: Tournament) -> bool:
 
 async def ensure_sample_tournament(session: Any, *, language_code: str) -> Tournament:
     questions = build_human_rights_tournament_questions()
-    title = "Giáº£i Ä‘áº¥u quyá»n con ngÆ°á»i tuáº§n nÃ y"
+    title = "Giải đấu quyền con người tuần này"
     description = (
-        "BÃ i thi 50 cÃ¢u theo chá»§ Ä‘á» quyá»n con ngÆ°á»i, gá»“m ngá»¯ phÃ¡p, tá»« vá»±ng, nghe vÃ  Ä‘á»c hiá»ƒu Ä‘á»ƒ xáº¿p háº¡ng toÃ n server."
+        "Bài thi 50 câu theo chủ đề quyền con người, gồm ngữ pháp, từ vựng, nghe và đọc hiểu để xếp hạng toàn server."
     )
-    reward_title = "Huy hiá»‡u NhÃ¢n quyá»n tuáº§n"
-    reward_description = "Top cao nháº­n huy hiá»‡u giáº£i Ä‘áº¥u, Ä‘iá»ƒm thÆ°á»Ÿng vÃ  vá»‹ trÃ­ ná»•i báº­t trÃªn báº£ng xáº¿p háº¡ng."
+    reward_title = "Huy hiệu Nhân quyền tuần"
+    reward_description = "Top cao nhận huy hiệu giải đấu, điểm thưởng và vị trí nổi bật trên bảng xếp hạng."
     result = await session.execute(
         select(Tournament)
         .where(Tournament.language_code == language_code, Tournament.is_active.is_(True))
@@ -823,6 +843,9 @@ async def ensure_sample_tournament(session: Any, *, language_code: str) -> Tourn
         .limit(1)
     )
     tournament = result.scalar_one_or_none()
+    if tournament is not None and not is_human_rights_tournament_blueprint_candidate(tournament):
+        return tournament
+
     if tournament is not None:
         current_listening_audio_count = sum(
             1
@@ -831,7 +854,7 @@ async def ensure_sample_tournament(session: Any, *, language_code: str) -> Tourn
         )
         should_refresh = (
             len(list(tournament.questions or [])) != len(questions)
-            or "quyá»n con ngÆ°á»i" not in (tournament.title or "").lower()
+            or "quyền con người" not in (tournament.title or "").lower()
             or tournament.duration_minutes != 50
             or current_listening_audio_count != 1
         )
@@ -847,38 +870,38 @@ async def ensure_sample_tournament(session: Any, *, language_code: str) -> Tourn
 
     tournament = Tournament(
         language_code=language_code,
-        title=f"Giáº£i Ä‘áº¥u {language_code.upper()} tuáº§n nÃ y",
-        description="BÃ i thi há»—n há»£p Ä‘á»ƒ tranh báº£ng xáº¿p háº¡ng giáº£i Ä‘áº¥u.",
+        title=f"Giải đấu {language_code.upper()} tuần này",
+        description="Bài thi hỗn hợp để tranh bảng xếp hạng giải đấu.",
         duration_minutes=20,
         passing_score=60,
-        reward_title="Huy hiá»‡u Top giáº£i Ä‘áº¥u",
-        reward_description="Top Ä‘áº§u nháº­n huy hiá»‡u vÃ  Ä‘iá»ƒm thÆ°á»Ÿng trong giáº£i Ä‘áº¥u.",
+        reward_title="Huy hiệu Top giải đấu",
+        reward_description="Top đầu nhận huy hiệu và điểm thưởng trong giải đấu.",
         questions=[
             {
                 "id": 1,
-                "prompt": "Chá»n Ä‘Ã¡p Ã¡n Ä‘Ãºng.",
+                "prompt": "Chọn đáp án đúng.",
                 "options": [
-                    {"id": "a", "text": "ÄÃ¡p Ã¡n A"},
-                    {"id": "b", "text": "ÄÃ¡p Ã¡n B"},
-                    {"id": "c", "text": "ÄÃ¡p Ã¡n C"},
+                    {"id": "a", "text": "Đáp án A"},
+                    {"id": "b", "text": "Đáp án B"},
+                    {"id": "c", "text": "Đáp án C"},
                 ],
                 "correct_answer": "a",
                 "order_index": 1,
             },
             {
                 "id": 2,
-                "prompt": "Äiá»n tá»« cÃ²n thiáº¿u.",
+                "prompt": "Điền từ còn thiếu.",
                 "options": [],
                 "correct_answer": "sample",
                 "order_index": 2,
             },
             {
                 "id": 3,
-                "prompt": "Chá»n nghÄ©a gáº§n Ä‘Ãºng nháº¥t.",
+                "prompt": "Chọn nghĩa gần đúng nhất.",
                 "options": [
-                    {"id": "1", "text": "NghÄ©a 1"},
-                    {"id": "2", "text": "NghÄ©a 2"},
-                    {"id": "3", "text": "NghÄ©a 3"},
+                    {"id": "1", "text": "Nghĩa 1"},
+                    {"id": "2", "text": "Nghĩa 2"},
+                    {"id": "3", "text": "Nghĩa 3"},
                 ],
                 "correct_answer": "2",
                 "order_index": 3,
@@ -917,7 +940,7 @@ async def get_exam(exam_id: int):
         exam_result = await session.execute(select(Exam).where(Exam.id == exam_id, Exam.is_active.is_(True)))
         exam = exam_result.scalar_one_or_none()
         if exam is None:
-            raise HTTPException(status_code=404, detail="Äá» thi khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Đề thi không tồn tại")
 
         question_result = await session.execute(
             select(ExamQuestion).where(ExamQuestion.exam_id == exam.id).order_by(ExamQuestion.order_index.asc())
@@ -935,14 +958,14 @@ async def submit_exam(
         exam_result = await session.execute(select(Exam).where(Exam.id == exam_id, Exam.is_active.is_(True)))
         exam = exam_result.scalar_one_or_none()
         if exam is None:
-            raise HTTPException(status_code=404, detail="Äá» thi khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Đề thi không tồn tại")
 
         question_result = await session.execute(
             select(ExamQuestion).where(ExamQuestion.exam_id == exam.id).order_by(ExamQuestion.order_index.asc())
         )
         questions = question_result.scalars().all()
         if not questions:
-            raise HTTPException(status_code=400, detail="Äá» thi chÆ°a cÃ³ cÃ¢u há»i")
+            raise HTTPException(status_code=400, detail="Đề thi chưa có câu hỏi")
 
         correct_count = 0
         for question in questions:
@@ -975,8 +998,8 @@ async def submit_exam(
             await create_notification(
                 session,
                 user_id=current_user.id,
-                title="ÄÃ£ ná»™p bÃ i thi",
-                content=f"Báº¡n Ä‘áº¡t {score_percent}% trong Ä‘á» {exam.title}.",
+                title="Đã nộp bài thi",
+                content=f"Bạn đạt {score_percent}% trong đề {exam.title}.",
                 notification_type="exam",
             )
 
@@ -992,7 +1015,7 @@ async def submit_exam(
             total_questions=len(questions),
             score_percent=score_percent,
             passed=passed,
-            feedback="Äáº¡t yÃªu cáº§u." if passed else "ChÆ°a Ä‘áº¡t, báº¡n nÃªn Ã´n láº¡i rá»“i thá»­ tiáº¿p.",
+            feedback="Đạt yêu cầu." if passed else "Chưa đạt, bạn nên ôn lại rồi thử tiếp.",
         )
 
 
@@ -1011,7 +1034,7 @@ async def get_my_exam_attempts(current_user: User = Depends(get_current_user)):
                 total_questions=item.total_questions,
                 score_percent=item.score_percent,
                 passed=item.passed,
-                feedback="Äáº¡t yÃªu cáº§u." if item.passed else "ChÆ°a Ä‘áº¡t.",
+                feedback="Đạt yêu cầu." if item.passed else "Chưa đạt.",
             )
             for item in attempts
         ]
@@ -1064,7 +1087,7 @@ async def get_tournament_detail(tournament_id: int, current_user: User | None = 
         result = await session.execute(select(Tournament).where(Tournament.id == tournament_id, Tournament.is_active.is_(True)))
         tournament = result.scalar_one_or_none()
         if tournament is None:
-            raise HTTPException(status_code=404, detail="Giáº£i Ä‘áº¥u khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Giải đấu không tồn tại")
         if apply_human_rights_tournament_blueprint(tournament):
             await session.commit()
 
@@ -1095,7 +1118,7 @@ async def register_tournament(tournament_id: int, current_user: User = Depends(g
         result = await session.execute(select(Tournament).where(Tournament.id == tournament_id, Tournament.is_active.is_(True)))
         tournament = result.scalar_one_or_none()
         if tournament is None:
-            raise HTTPException(status_code=404, detail="Giáº£i Ä‘áº¥u khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Giải đấu không tồn tại")
 
         existing_result = await session.execute(
             select(TournamentRegistration).where(
@@ -1108,14 +1131,14 @@ async def register_tournament(tournament_id: int, current_user: User = Depends(g
             await create_notification(
                 session,
                 user_id=current_user.id,
-                title="ÄÃ£ Ä‘Äƒng kÃ½ giáº£i Ä‘áº¥u",
-                content=f"Báº¡n Ä‘Ã£ Ä‘Äƒng kÃ½ {tournament.title}.",
+                title="Đã đăng ký giải đấu",
+                content=f"Bạn đã đăng ký {tournament.title}.",
                 notification_type="tournament",
             )
         await session.commit()
         await send_user_event(current_user.id, "tournament:registered", {"tournament_id": tournament.id})
         await broadcast_event("tournament:room:update", {"tournament_id": tournament.id})
-        return TournamentRegisterOut(tournament_id=tournament.id, registered=True, message="ÄÃ£ Ä‘Äƒng kÃ½ giáº£i Ä‘áº¥u")
+        return TournamentRegisterOut(tournament_id=tournament.id, registered=True, message="Đã đăng ký giải đấu")
 
 
 @router.post("/tournaments/{tournament_id}/start-room", response_model=TournamentRoomStartOut)
@@ -1127,7 +1150,7 @@ async def start_tournament_room(tournament_id: int, current_user: User = Depends
         result = await session.execute(select(Tournament).where(Tournament.id == tournament_id, Tournament.is_active.is_(True)))
         tournament = result.scalar_one_or_none()
         if tournament is None:
-            raise HTTPException(status_code=404, detail="Giáº£i Ä‘áº¥u khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Giải đấu không tồn tại")
         apply_human_rights_tournament_blueprint(tournament)
 
         tournament.room_status = "in_progress"
@@ -1139,7 +1162,7 @@ async def start_tournament_room(tournament_id: int, current_user: User = Depends
             tournament_id=tournament.id,
             room_status=tournament.room_status,
             room_started_at=tournament.room_started_at.isoformat(),
-            message="ÄÃ£ má»Ÿ phÃ²ng thi cho toÃ n bá»™ thÃ­ sinh",
+            message="Đã mở phòng thi cho toàn bộ thí sinh",
         )
 
 
@@ -1153,7 +1176,7 @@ async def submit_tournament(
         result = await session.execute(select(Tournament).where(Tournament.id == tournament_id, Tournament.is_active.is_(True)))
         tournament = result.scalar_one_or_none()
         if tournament is None:
-            raise HTTPException(status_code=404, detail="Giáº£i Ä‘áº¥u khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Giải đấu không tồn tại")
         apply_human_rights_tournament_blueprint(tournament)
 
         registration_result = await session.execute(
@@ -1167,11 +1190,11 @@ async def submit_tournament(
             await session.flush()
 
         if get_effective_tournament_room_status(tournament, window_start=current_tournament_window()[0]) != "in_progress":
-            raise HTTPException(status_code=403, detail="PhÃ²ng thi chÆ°a Ä‘Æ°á»£c admin má»Ÿ")
+            raise HTTPException(status_code=403, detail="Phòng thi chưa được admin mở")
 
         questions = tournament.questions or []
         if not questions:
-            raise HTTPException(status_code=400, detail="Giáº£i Ä‘áº¥u chÆ°a cÃ³ bÃ i thi há»—n há»£p")
+            raise HTTPException(status_code=400, detail="Giải đấu chưa có bài thi hỗn hợp")
 
         correct_count = 0
         for question in questions:
@@ -1195,7 +1218,7 @@ async def submit_tournament(
         await create_notification(
             session,
             user_id=current_user.id,
-            title="ÄÃ£ ná»™p bÃ i giáº£i Ä‘áº¥u",
+            title="Đã nộp bài giải đấu",
             content=f"{tournament.title}: {score_percent}%.",
             notification_type="tournament",
         )
@@ -1223,7 +1246,7 @@ async def submit_tournament(
             score_percent=score_percent,
             passed=passed,
             reward_title=tournament.reward_title if passed else None,
-            feedback="Äáº¡t giáº£i thÆ°á»Ÿng." if passed else "ChÆ°a Ä‘áº¡t giáº£i, hÃ£y thá»­ láº¡i.",
+            feedback="Đạt giải thưởng." if passed else "Chưa đạt giải, hãy thử lại.",
             rank=user_rank,
             leaderboard_size=len(ranking_rows),
         )
@@ -1293,7 +1316,7 @@ async def update_notebook_entry(entry_id: int, payload: NotebookEntryInput, curr
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Ghi chÃº khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Ghi chú không tồn tại")
         item.title = payload.title
         item.content = payload.content
         item.tag = payload.tag
@@ -1313,11 +1336,11 @@ async def delete_notebook_entry(entry_id: int, current_user: User = Depends(get_
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Ghi chÃº khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Ghi chú không tồn tại")
         await session.delete(item)
         await session.commit()
         await send_user_event(current_user.id, "notebook:delete", {"entry_id": entry_id})
-        return SimpleStatusOut(ok=True, message="ÄÃ£ xÃ³a ghi chÃº")
+        return SimpleStatusOut(ok=True, message="Đã xóa ghi chú")
 
 
 @router.get("/me/notebook/reminders", response_model=list[NotebookReminderOut])
@@ -1358,7 +1381,7 @@ async def complete_notebook_reminder(reminder_id: int, current_user: User = Depe
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Nháº¯c nhá»Ÿ khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Nhắc nhở không tồn tại")
         item.is_active = False
         await session.commit()
         await session.refresh(item)
@@ -1439,7 +1462,7 @@ async def update_vocabulary_bank_selection(
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Kho tá»« vá»±ng khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Kho từ vựng không tồn tại")
         item.is_selected = payload.is_selected
         await session.commit()
         await session.refresh(item)
@@ -1463,7 +1486,7 @@ async def update_vocabulary_bank_practice(
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Kho tá»« vá»±ng khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Kho từ vựng không tồn tại")
         item.is_in_practice = payload.is_in_practice
         if payload.is_in_practice:
             item.is_selected = True
@@ -1485,11 +1508,11 @@ async def delete_vocabulary_bank_item(item_id: int, current_user: User = Depends
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Tá»« Ä‘Ã£ lÆ°u khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Từ đã lưu không tồn tại")
         await session.delete(item)
         await session.commit()
         await send_user_event(current_user.id, "vocabulary-bank:delete", {"item_id": item_id})
-        return SimpleStatusOut(ok=True, message="ÄÃ£ xÃ³a tá»« Ä‘Ã£ lÆ°u")
+        return SimpleStatusOut(ok=True, message="Đã xóa từ đã lưu")
 
 
 @router.get("/me/notifications", response_model=list[NotificationOut])
@@ -1514,7 +1537,7 @@ async def mark_notification_read(notification_id: int, current_user: User = Depe
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="ThÃ´ng bÃ¡o khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Thông báo không tồn tại")
         item.is_read = True
         await session.commit()
         await session.refresh(item)
@@ -1749,9 +1772,9 @@ async def join_group_room(payload: GroupRoomJoinInput, current_user: User = Depe
         result = await session.execute(select(GroupRoom).where(GroupRoom.room_code == payload.room_code.upper()))
         room = result.scalar_one_or_none()
         if room is None:
-            raise HTTPException(status_code=404, detail="NhÃ³m khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Nhóm không tồn tại")
         if room.passcode_hash != hash_group_passcode(payload.passcode):
-            raise HTTPException(status_code=400, detail="Máº­t kháº©u nhÃ³m khÃ´ng Ä‘Ãºng")
+            raise HTTPException(status_code=400, detail="Mật khẩu nhóm không đúng")
 
         member_result = await session.execute(
             select(GroupRoomMember).where(
@@ -1778,7 +1801,7 @@ async def ensure_room_member(session: Any, *, room_id: int, user_id: int) -> Gro
     room_result = await session.execute(select(GroupRoom).where(GroupRoom.id == room_id))
     room = room_result.scalar_one_or_none()
     if room is None:
-        raise HTTPException(status_code=404, detail="NhÃ³m khÃ´ng tá»“n táº¡i")
+        raise HTTPException(status_code=404, detail="Nhóm không tồn tại")
 
     member_result = await session.execute(
         select(GroupRoomMember).where(
@@ -1787,7 +1810,7 @@ async def ensure_room_member(session: Any, *, room_id: int, user_id: int) -> Gro
         )
     )
     if member_result.scalar_one_or_none() is None:
-        raise HTTPException(status_code=403, detail="Báº¡n chÆ°a tham gia nhÃ³m nÃ y")
+        raise HTTPException(status_code=403, detail="Bạn chưa tham gia nhóm này")
 
     return room
 
@@ -1823,7 +1846,7 @@ async def create_group_room_message(
         member_ids = list(members_result.scalars().all())
         content = (payload.content or "").strip()
         if not content and not payload.image_url and not payload.audio_url:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tin nhan khong duoc de trong")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tin nhắn không được để trống")
         message = GroupRoomMessage(
             room_id=room_id,
             user_id=current_user.id,
@@ -1871,7 +1894,7 @@ async def create_global_chat_message(
         room = await get_or_create_global_chat_room(session, current_user=current_user)
         content = (payload.content or "").strip()
         if not content and not payload.image_url and not payload.audio_url:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tin nhan khong duoc de trong")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tin nhắn không được để trống")
         message = GroupRoomMessage(
             room_id=room.id,
             user_id=current_user.id,
@@ -1943,9 +1966,9 @@ async def update_community_post(
             )
         ).scalar_one_or_none()
         if post is None:
-            raise HTTPException(status_code=404, detail="Bai viet khong ton tai")
+            raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
         if post.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Ban chi duoc sua bai viet cua minh")
+            raise HTTPException(status_code=403, detail="Bạn chỉ được sửa bài viết của mình")
 
         post.title = payload.title.strip()
         post.content = payload.content.strip()
@@ -1970,14 +1993,14 @@ async def delete_community_post(post_id: int, current_user: User = Depends(get_c
             )
         ).scalar_one_or_none()
         if post is None:
-            raise HTTPException(status_code=404, detail="Bai viet khong ton tai")
+            raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
         if post.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Ban chi duoc xoa bai viet cua minh")
+            raise HTTPException(status_code=403, detail="Bạn chỉ được xóa bài viết của mình")
 
         post.is_active = False
         await session.commit()
         await broadcast_event("community:post:removed", {"language_code": post.language_code, "post_id": post.id})
-        return SimpleStatusOut(ok=True, message="Da xoa bai viet")
+        return SimpleStatusOut(ok=True, message="Đã xóa bài viết")
 
 
 @router.post("/community/posts/{post_id}/comments", response_model=CommunityCommentOut, status_code=status.HTTP_201_CREATED)
@@ -1990,7 +2013,7 @@ async def create_community_comment(
         post_result = await session.execute(select(CommunityPost).where(CommunityPost.id == post_id, CommunityPost.is_active.is_(True)))
         post = post_result.scalar_one_or_none()
         if post is None:
-            raise HTTPException(status_code=404, detail="BÃ i viáº¿t khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
         comment = CommunityComment(post_id=post_id, user_id=current_user.id, content=payload.content)
         session.add(comment)
         await session.commit()
@@ -2011,14 +2034,14 @@ async def react_community_post(
 ):
     reaction_type = payload.reaction_type.strip().lower()
     if reaction_type not in {"like", "haha", "tym"}:
-        raise HTTPException(status_code=422, detail="Reaction khong hop le")
+        raise HTTPException(status_code=422, detail="Phản ứng không hợp lệ")
 
     async with AsyncSessionLocal() as session:
         post = (
             await session.execute(select(CommunityPost).where(CommunityPost.id == post_id, CommunityPost.is_active.is_(True)))
         ).scalar_one_or_none()
         if post is None:
-            raise HTTPException(status_code=404, detail="Bai viet khong ton tai")
+            raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
 
         existing = (
             await session.execute(
@@ -2060,7 +2083,7 @@ async def share_community_post(post_id: int, current_user: User = Depends(get_cu
             await session.execute(select(CommunityPost).where(CommunityPost.id == post_id, CommunityPost.is_active.is_(True)))
         ).scalar_one_or_none()
         if post is None:
-            raise HTTPException(status_code=404, detail="Bai viet khong ton tai")
+            raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
 
         existing = (
             await session.execute(
@@ -2095,10 +2118,10 @@ async def report_community_post(
         post = (
             await session.execute(
                 select(CommunityPost).where(CommunityPost.id == post_id, CommunityPost.is_active.is_(True))
-            )
+        )
         ).scalar_one_or_none()
         if post is None:
-            raise HTTPException(status_code=404, detail="BÃ i viáº¿t khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
 
         existing = (
             await session.execute(
@@ -2107,10 +2130,10 @@ async def report_community_post(
                     CommunityReport.post_id == post_id,
                     CommunityReport.status.in_(["open", "reviewing"]),
                 )
-            )
+        )
         ).scalar_one_or_none()
         if existing is not None:
-            raise HTTPException(status_code=409, detail="Báº¡n Ä‘Ã£ bÃ¡o cÃ¡o bÃ i viáº¿t nÃ y rá»“i")
+            raise HTTPException(status_code=409, detail="Bạn đã báo cáo bài viết này rồi")
 
         report = CommunityReport(
             reporter_user_id=current_user.id,
@@ -2122,7 +2145,7 @@ async def report_community_post(
         session.add(report)
         await session.commit()
         await notify_admin_community_refresh()
-        return SimpleStatusOut(ok=True, message="ÄÃ£ gá»­i bÃ¡o cÃ¡o vi pháº¡m")
+        return SimpleStatusOut(ok=True, message="Đã gửi báo cáo vi phạm")
 
 
 @router.get("/community/users/search", response_model=list[CommunityUserOut])
@@ -2179,13 +2202,13 @@ async def list_friends(current_user: User = Depends(get_current_user)):
 @router.post("/community/friends/{friend_user_id}", response_model=FriendLinkOut, status_code=status.HTTP_201_CREATED)
 async def add_friend(friend_user_id: int, current_user: User = Depends(get_current_user)):
     if friend_user_id == current_user.id:
-        raise HTTPException(status_code=400, detail="KhÃ´ng thá»ƒ káº¿t báº¡n vá»›i chÃ­nh mÃ¬nh")
+        raise HTTPException(status_code=400, detail="Không thể kết bạn với chính mình")
 
     async with AsyncSessionLocal() as session:
         friend_result = await session.execute(select(User).where(User.id == friend_user_id))
         friend = friend_result.scalar_one_or_none()
         if friend is None:
-            raise HTTPException(status_code=404, detail="NgÆ°á»i dÃ¹ng khÃ´ng tá»“n táº¡i")
+            raise HTTPException(status_code=404, detail="Người dùng không tồn tại")
 
         existing = await session.execute(
             select(FriendLink).where(

@@ -49,7 +49,7 @@ async function request(path, options = {}) {
     });
   } catch (error) {
     if (error.name === "AbortError") {
-      throw new Error("Backend phan hoi qua lau");
+      throw new Error("Backend phản hồi quá lâu");
     }
     throw error;
   } finally {

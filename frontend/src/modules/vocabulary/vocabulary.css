@@ -1,0 +1,1007 @@
+.vmora-vocab-page {
+  --vmora-vocab-page-text: #1f2937;
+  --vmora-vocab-page-text-strong: #0f172a;
+  --vmora-vocab-page-muted: rgba(51, 65, 85, 0.82);
+  --vmora-vocab-page-soft: rgba(71, 85, 105, 0.74);
+  --vmora-vocab-page-panel:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 241, 255, 0.82));
+  --vmora-vocab-page-panel-alt:
+    linear-gradient(180deg, rgba(250, 248, 255, 0.9), rgba(239, 234, 255, 0.82));
+  --vmora-vocab-page-hero:
+    radial-gradient(circle at top left, rgba(168, 85, 247, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(238, 232, 255, 0.9));
+  --vmora-vocab-page-active:
+    radial-gradient(circle at top left, rgba(168, 85, 247, 0.16), transparent 36%),
+    linear-gradient(180deg, rgba(245, 243, 255, 0.96), rgba(232, 226, 255, 0.9));
+  --vmora-vocab-page-card-soft: rgba(255, 255, 255, 0.66);
+  --vmora-vocab-page-border: rgba(148, 163, 184, 0.24);
+  --vmora-vocab-page-border-strong: rgba(139, 92, 246, 0.24);
+  --vmora-vocab-page-shadow: 0 18px 48px rgba(148, 163, 184, 0.22);
+  --vmora-vocab-page-progress-track: rgba(148, 163, 184, 0.26);
+  --vmora-vocab-page-chip: rgba(99, 102, 241, 0.08);
+  --vmora-vocab-page-quiz-option: rgba(255, 255, 255, 0.78);
+  --vmora-vocab-page-correct: rgba(34, 197, 94, 0.14);
+  --vmora-vocab-page-correct-border: rgba(34, 197, 94, 0.32);
+  --vmora-vocab-page-wrong: rgba(239, 68, 68, 0.12);
+  --vmora-vocab-page-wrong-border: rgba(239, 68, 68, 0.28);
+  color: var(--vmora-vocab-page-text);
+  font-size: 0.9rem;
+  padding: 40px 0 72px;
+}
+
+.app-theme-dark .vmora-vocab-page {
+  --vmora-vocab-page-text: #f3f4f6;
+  --vmora-vocab-page-text-strong: #fcfcff;
+  --vmora-vocab-page-muted: rgba(226, 232, 240, 0.82);
+  --vmora-vocab-page-soft: rgba(203, 213, 225, 0.72);
+  --vmora-vocab-page-panel:
+    linear-gradient(180deg, rgba(22, 20, 40, 0.88), rgba(15, 23, 42, 0.84));
+  --vmora-vocab-page-panel-alt:
+    linear-gradient(180deg, rgba(30, 27, 52, 0.9), rgba(17, 24, 39, 0.86));
+  --vmora-vocab-page-hero:
+    radial-gradient(circle at top left, rgba(192, 132, 252, 0.22), transparent 34%),
+    linear-gradient(145deg, rgba(30, 27, 52, 0.9), rgba(17, 24, 39, 0.86));
+  --vmora-vocab-page-active:
+    radial-gradient(circle at top left, rgba(168, 85, 247, 0.18), transparent 36%),
+    linear-gradient(180deg, rgba(76, 29, 149, 0.28), rgba(15, 23, 42, 0.9));
+  --vmora-vocab-page-card-soft: rgba(30, 41, 59, 0.62);
+  --vmora-vocab-page-border: rgba(148, 163, 184, 0.18);
+  --vmora-vocab-page-border-strong: rgba(196, 181, 253, 0.3);
+  --vmora-vocab-page-shadow: 0 20px 54px rgba(2, 6, 23, 0.3);
+  --vmora-vocab-page-progress-track: rgba(71, 85, 105, 0.52);
+  --vmora-vocab-page-chip: rgba(148, 163, 184, 0.14);
+  --vmora-vocab-page-quiz-option: rgba(51, 65, 85, 0.72);
+  --vmora-vocab-page-correct: rgba(34, 197, 94, 0.18);
+  --vmora-vocab-page-correct-border: rgba(74, 222, 128, 0.52);
+  --vmora-vocab-page-wrong: rgba(239, 68, 68, 0.18);
+  --vmora-vocab-page-wrong-border: rgba(248, 113, 113, 0.48);
+}
+
+.vmora-vocab-wrap {
+  margin: 0 auto;
+  max-width: 1280px;
+  padding: 0 32px;
+}
+
+.vmora-vocab-hero {
+  backdrop-filter: blur(20px);
+  background: var(--vmora-vocab-page-hero);
+  border: 1px solid var(--vmora-vocab-page-border-strong);
+  border-radius: 32px;
+  box-shadow: var(--vmora-vocab-page-shadow);
+  margin-bottom: 28px;
+  padding: 32px;
+}
+
+.vmora-vocab-eyebrow,
+.vmora-vocab-lesson-kicker {
+  color: #8b5cf6;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+
+.vmora-vocab-hero-title,
+.vmora-vocab-topic-detail-title,
+.vmora-vocab-lesson-title,
+.vmora-vocab-topic-title {
+  margin: 0;
+}
+
+.vmora-vocab-hero-title {
+  font-size: clamp(1.8rem, 3.6vw, 3.33rem);
+  line-height: 1.06;
+  max-width: 920px;
+}
+
+.vmora-vocab-hero-copy,
+.vmora-vocab-topic-detail-copy,
+.vmora-vocab-topic-description {
+  color: var(--vmora-vocab-page-muted);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.vmora-vocab-hero-copy {
+  margin-top: 16px;
+  max-width: 720px;
+}
+
+.vmora-vocab-browser,
+.vmora-vocab-empty-inline {
+  backdrop-filter: blur(16px);
+  background: var(--vmora-vocab-page-panel);
+  border: 1px solid var(--vmora-vocab-page-border);
+  border-radius: 26px;
+  box-shadow: var(--vmora-vocab-page-shadow);
+}
+
+.vmora-vocab-browser {
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+}
+
+.vmora-vocab-browser-toolbar,
+.vmora-vocab-browser-head,
+.vmora-vocab-browser-stats,
+.vmora-vocab-browser-pagination {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.vmora-vocab-topic-pills {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vmora-vocab-topic-pill {
+  align-items: flex-start;
+  background: var(--vmora-vocab-page-chip);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--vmora-vocab-page-text);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.vmora-vocab-topic-pill strong,
+.vmora-vocab-lesson-row-copy h3,
+.vmora-vocab-lesson-chip strong {
+  color: var(--vmora-vocab-page-text-strong);
+}
+
+.vmora-vocab-topic-pill span,
+.vmora-vocab-browser-search span,
+.vmora-vocab-browser-filter span,
+.vmora-vocab-browser-stats span,
+.vmora-vocab-lesson-row-meta span,
+.vmora-vocab-browser-pagination span,
+.vmora-vocab-lesson-chip small {
+  color: var(--vmora-vocab-page-soft);
+}
+
+.vmora-vocab-topic-pill.is-active {
+  background: var(--vmora-vocab-page-active);
+  border-color: var(--vmora-vocab-page-border-strong);
+}
+
+.vmora-vocab-browser-search,
+.vmora-vocab-browser-filter {
+  display: grid;
+  gap: 8px;
+}
+
+.vmora-vocab-browser-search {
+  min-width: 300px;
+}
+
+.vmora-vocab-browser-filter {
+  min-width: 170px;
+}
+
+.vmora-vocab-browser-search span,
+.vmora-vocab-browser-filter span {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.vmora-vocab-browser-search input,
+.vmora-vocab-browser-filter select {
+  background: var(--vmora-vocab-page-card-soft);
+  border: 1px solid var(--vmora-vocab-page-border);
+  border-radius: 16px;
+  color: var(--vmora-vocab-page-text-strong);
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.vmora-vocab-browser-search input:focus,
+.vmora-vocab-browser-filter select:focus {
+  border-color: var(--vmora-vocab-page-border-strong);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+  outline: none;
+}
+
+.vmora-vocab-browser-filters {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.vmora-vocab-browser-head {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--vmora-vocab-page-border);
+  padding-bottom: 18px;
+}
+
+.vmora-vocab-browser-stats {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 260px;
+}
+
+.vmora-vocab-browser-stats-hero {
+  justify-content: flex-start;
+  margin-top: 18px;
+}
+
+.vmora-vocab-lesson-list {
+  display: grid;
+  gap: 14px;
+}
+
+.vmora-vocab-lesson-row {
+  align-items: center;
+  background: var(--vmora-vocab-page-card-soft);
+  border: 1px solid var(--vmora-vocab-page-border);
+  border-radius: 20px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 18px 20px;
+}
+
+.vmora-vocab-lesson-row-main,
+.vmora-vocab-lesson-row-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.vmora-vocab-lesson-row-copy h3,
+.vmora-vocab-lesson-row-copy p {
+  margin: 0;
+}
+
+.vmora-vocab-lesson-row-preview,
+.vmora-vocab-lesson-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vmora-vocab-lesson-chip {
+  align-items: center;
+  background: rgba(139, 92, 246, 0.08);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px 10px;
+}
+
+.vmora-vocab-lesson-chip strong {
+  font-size: 0.84rem;
+}
+
+.vmora-vocab-lesson-row-side {
+  display: grid;
+  gap: 12px;
+  min-width: 320px;
+}
+
+.vmora-vocab-progress-block-compact {
+  margin-bottom: 0;
+}
+
+.vmora-vocab-empty-inline {
+  padding: 24px;
+  text-align: center;
+}
+
+.vmora-vocab-topic-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 28px;
+}
+
+.vmora-vocab-topic-card,
+.vmora-vocab-lesson-card,
+.vmora-vocab-empty,
+.vmora-vocab-topic-detail {
+  backdrop-filter: blur(16px);
+  background: var(--vmora-vocab-page-panel);
+  border: 1px solid var(--vmora-vocab-page-border);
+  border-radius: 26px;
+  box-shadow: var(--vmora-vocab-page-shadow);
+}
+
+.vmora-vocab-topic-card {
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 240px;
+  padding: 24px;
+  text-align: left;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.vmora-vocab-topic-card:hover {
+  border-color: var(--vmora-vocab-page-border-strong);
+  box-shadow: 0 24px 56px rgba(139, 92, 246, 0.14);
+  transform: translateY(-2px);
+}
+
+.vmora-vocab-topic-card.is-active {
+  background: var(--vmora-vocab-page-active);
+  border-color: var(--vmora-vocab-page-border-strong);
+}
+
+.vmora-vocab-topic-label {
+  color: #8b5cf6;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.vmora-vocab-topic-title {
+  font-size: 1.22rem;
+  line-height: 1.25;
+}
+
+.vmora-vocab-topic-meta {
+  align-items: center;
+  color: var(--vmora-vocab-page-soft);
+  display: flex;
+  font-size: 0.83rem;
+  font-weight: 600;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.vmora-vocab-topic-detail {
+  padding: 28px;
+}
+
+.vmora-vocab-topic-detail-head {
+  align-items: end;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  margin-bottom: 24px;
+}
+
+.vmora-vocab-lesson-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.vmora-vocab-lesson-card {
+  padding: 24px;
+}
+
+.vmora-vocab-lesson-head {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.vmora-vocab-lesson-title {
+  font-size: 1.13rem;
+  line-height: 1.3;
+}
+
+.vmora-vocab-inline-toggle {
+  color: var(--vmora-vocab-page-soft);
+  font-size: 0.77rem;
+  margin: 10px 0 0;
+}
+
+.vmora-vocab-lesson-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+.vmora-vocab-button {
+  border: 0;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  min-height: 42px;
+  min-width: 112px;
+  padding: 0 18px;
+}
+
+.vmora-vocab-button-primary {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #ffffff;
+}
+
+.vmora-vocab-button-muted {
+  background: var(--vmora-vocab-page-chip);
+  color: var(--vmora-vocab-page-text-strong);
+}
+
+.vmora-vocab-progress-block {
+  margin-bottom: 18px;
+}
+
+.vmora-vocab-progress-copy {
+  align-items: center;
+  display: flex;
+  font-size: 0.85rem;
+  font-weight: 700;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.vmora-vocab-progress-copy span {
+  color: var(--vmora-vocab-page-muted);
+}
+
+.vmora-vocab-progress-copy strong {
+  color: var(--vmora-vocab-page-text-strong);
+}
+
+.vmora-vocab-progress-track {
+  background: var(--vmora-vocab-page-progress-track);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.vmora-vocab-progress-bar {
+  background: linear-gradient(90deg, #f0abfc, #8b5cf6);
+  border-radius: inherit;
+  height: 100%;
+}
+
+.vmora-vocab-word-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.vmora-vocab-word-row {
+  align-items: center;
+  background: var(--vmora-vocab-page-card-soft);
+  border: 1px solid var(--vmora-vocab-page-border);
+  border-radius: 20px;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 18px 20px;
+}
+
+.vmora-vocab-word-main {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  min-width: 0;
+}
+
+.vmora-vocab-word-hanzi {
+  color: var(--vmora-vocab-page-text-strong);
+  font-size: clamp(1.8rem, 2.7vw, 2.52rem);
+  font-weight: 800;
+  line-height: 1;
+  margin: 0;
+}
+
+.vmora-vocab-word-copy {
+  min-width: 0;
+}
+
+.vmora-vocab-word-pinyin,
+.vmora-vocab-word-meaning {
+  margin: 0;
+}
+
+.vmora-vocab-word-pinyin {
+  color: #c4b5fd;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.vmora-vocab-word-meaning {
+  color: var(--vmora-vocab-page-muted);
+}
+
+.vmora-vocab-status {
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.vmora-vocab-status-new {
+  background: rgba(59, 130, 246, 0.18);
+  color: #bfdbfe;
+}
+
+.vmora-vocab-status-learning {
+  background: rgba(250, 204, 21, 0.18);
+  color: #fde68a;
+}
+
+.vmora-vocab-status-mastered {
+  background: rgba(34, 197, 94, 0.18);
+  color: #bbf7d0;
+}
+
+.vmora-vocab-empty {
+  margin: 0 auto;
+  max-width: 820px;
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.vmora-vocab-detail-shell,
+.vmora-vocab-session-shell {
+  backdrop-filter: blur(16px);
+  background: var(--vmora-vocab-page-panel-alt);
+  border: 1px solid var(--vmora-vocab-page-border);
+  border-radius: 28px;
+  box-shadow: var(--vmora-vocab-page-shadow);
+  padding: 28px;
+}
+
+.vmora-vocab-detail-head,
+.vmora-vocab-session-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.vmora-vocab-detail-title {
+  font-size: clamp(1.71rem, 2.7vw, 2.7rem);
+  line-height: 1.1;
+  margin: 0;
+}
+
+.vmora-vocab-detail-copy {
+  color: var(--vmora-vocab-page-muted);
+  line-height: 1.7;
+  margin: 14px 0 0;
+  max-width: 760px;
+}
+
+.vmora-vocab-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.vmora-vocab-link-button {
+  align-items: center;
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 46px;
+  min-width: 160px;
+  padding: 0 20px;
+  text-decoration: none;
+}
+
+.vmora-vocab-link-button-muted {
+  background: var(--vmora-vocab-page-chip);
+  color: var(--vmora-vocab-page-text-strong);
+}
+
+.vmora-vocab-detail-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.vmora-vocab-detail-card,
+.vmora-vocab-summary-card,
+.vmora-vocab-list-card,
+.vmora-vocab-quiz-card {
+  background: var(--vmora-vocab-page-card-soft);
+  border: 1px solid var(--vmora-vocab-page-border);
+  border-radius: 22px;
+}
+
+.vmora-vocab-detail-card {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 20px 22px;
+}
+
+.vmora-vocab-detail-main {
+  align-items: flex-start;
+  display: flex;
+  gap: 18px;
+}
+
+.vmora-vocab-detail-hanzi {
+  font-size: clamp(1.98rem, 3.6vw, 2.7rem);
+  font-weight: 800;
+  line-height: 1;
+  margin: 0;
+}
+
+.vmora-vocab-detail-pinyin,
+.vmora-vocab-detail-meaning,
+.vmora-vocab-detail-example {
+  margin: 0;
+}
+
+.vmora-vocab-detail-pinyin {
+  color: #c4b5fd;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.vmora-vocab-detail-meaning {
+  color: var(--vmora-vocab-page-text-strong);
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.vmora-vocab-detail-example {
+  color: var(--vmora-vocab-page-muted);
+  line-height: 1.6;
+}
+
+.vmora-vocab-pill-button {
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid var(--vmora-vocab-page-border-strong);
+  border-radius: 999px;
+  color: var(--vmora-vocab-page-text-strong);
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+.vmora-vocab-flip-stage {
+  perspective: 1400px;
+  margin-top: 24px;
+}
+
+.vmora-vocab-flip-card {
+  cursor: pointer;
+  height: 420px;
+  margin: 0 auto;
+  max-width: 720px;
+  position: relative;
+  width: 100%;
+}
+
+.vmora-vocab-flip-face {
+  align-items: center;
+  backface-visibility: hidden;
+  background: var(--vmora-vocab-page-hero);
+  border: 1px solid var(--vmora-vocab-page-border-strong);
+  border-radius: 28px;
+  box-shadow: var(--vmora-vocab-page-shadow);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 28px;
+  position: absolute;
+  text-align: center;
+}
+
+.vmora-vocab-flip-front,
+.vmora-vocab-flip-back {
+  flex-direction: column;
+  gap: 18px;
+}
+
+.vmora-vocab-flip-back {
+  transform: rotateY(180deg);
+}
+
+.vmora-vocab-flip-hanzi {
+  font-size: clamp(3.6rem, 8.1vw, 6.3rem);
+  font-weight: 800;
+  line-height: 1;
+  margin: 0;
+}
+
+.vmora-vocab-flip-pinyin,
+.vmora-vocab-flip-meaning,
+.vmora-vocab-flip-example,
+.vmora-vocab-session-tip {
+  margin: 0;
+}
+
+.vmora-vocab-flip-pinyin {
+  color: #a78bfa;
+  font-size: 1.22rem;
+  font-weight: 700;
+}
+
+.vmora-vocab-flip-meaning {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.vmora-vocab-flip-example {
+  color: var(--vmora-vocab-page-muted);
+  line-height: 1.7;
+  max-width: 520px;
+}
+
+.vmora-vocab-answer-actions {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 24px;
+}
+
+.vmora-vocab-answer-button {
+  border: 0;
+  border-radius: 20px;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 800;
+  min-height: 58px;
+}
+
+.vmora-vocab-answer-button-wrong {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.vmora-vocab-answer-button-right {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.vmora-vocab-session-tip {
+  color: var(--vmora-vocab-page-soft);
+  margin-top: 20px;
+  text-align: center;
+}
+
+.vmora-vocab-summary-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 24px 0;
+}
+
+.vmora-vocab-summary-card,
+.vmora-vocab-list-card {
+  padding: 22px;
+}
+
+.vmora-vocab-summary-card span {
+  color: var(--vmora-vocab-page-muted);
+  display: block;
+  margin-bottom: 10px;
+}
+
+.vmora-vocab-summary-card strong {
+  font-size: 1.98rem;
+}
+
+.vmora-vocab-list-title {
+  margin: 0 0 14px;
+}
+
+.vmora-vocab-summary-list {
+  color: var(--vmora-vocab-page-text);
+  display: grid;
+  gap: 12px;
+}
+
+.vmora-vocab-summary-list p {
+  margin: 0;
+}
+
+.vmora-vocab-quiz-card {
+  margin-top: 24px;
+  padding: 28px;
+}
+
+.vmora-vocab-quiz-type,
+.vmora-vocab-quiz-subline,
+.vmora-vocab-quiz-feedback {
+  margin: 0;
+}
+
+.vmora-vocab-quiz-type {
+  color: #8b5cf6;
+  font-size: 0.77rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.vmora-vocab-quiz-prompt {
+  font-size: clamp(2.16rem, 5.4vw, 4.14rem);
+  line-height: 1.08;
+  margin: 16px 0 10px;
+}
+
+.vmora-vocab-quiz-subline {
+  color: var(--vmora-vocab-page-soft);
+}
+
+.vmora-vocab-quiz-options {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 26px;
+}
+
+.vmora-vocab-quiz-option {
+  align-items: flex-start;
+  background: var(--vmora-vocab-page-quiz-option);
+  border: 1px solid var(--vmora-vocab-page-border);
+  border-radius: 20px;
+  color: var(--vmora-vocab-page-text-strong);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 100px;
+  padding: 18px;
+  text-align: left;
+}
+
+.vmora-vocab-quiz-option span {
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.vmora-vocab-quiz-option small {
+  color: var(--vmora-vocab-page-muted);
+  font-size: 0.83rem;
+}
+
+.vmora-vocab-quiz-option.is-correct {
+  background: var(--vmora-vocab-page-correct);
+  border-color: var(--vmora-vocab-page-correct-border);
+}
+
+.vmora-vocab-quiz-option.is-wrong {
+  background: var(--vmora-vocab-page-wrong);
+  border-color: var(--vmora-vocab-page-wrong-border);
+}
+
+.vmora-vocab-quiz-feedback {
+  color: var(--vmora-vocab-page-text);
+  margin-top: 18px;
+}
+
+@media (max-width: 1080px) {
+  .vmora-vocab-browser-toolbar,
+  .vmora-vocab-browser-head,
+  .vmora-vocab-browser-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vmora-vocab-browser-stats {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .vmora-vocab-browser-search {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .vmora-vocab-topic-pills {
+    width: 100%;
+  }
+
+  .vmora-vocab-lesson-row {
+    grid-template-columns: 1fr;
+  }
+
+  .vmora-vocab-lesson-row-side {
+    min-width: 0;
+  }
+
+  .vmora-vocab-topic-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vmora-vocab-topic-detail-head {
+    grid-template-columns: 1fr;
+  }
+
+  .vmora-vocab-word-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .vmora-vocab-wrap {
+    padding: 0 18px;
+  }
+
+  .vmora-vocab-page {
+    padding-top: 24px;
+  }
+
+  .vmora-vocab-browser {
+    padding: 20px;
+  }
+
+  .vmora-vocab-browser-filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vmora-vocab-browser-filter {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .vmora-vocab-hero,
+  .vmora-vocab-topic-detail,
+  .vmora-vocab-lesson-card {
+    border-radius: 24px;
+    padding: 20px;
+  }
+
+  .vmora-vocab-topic-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vmora-vocab-lesson-head,
+  .vmora-vocab-lesson-actions,
+  .vmora-vocab-detail-head,
+  .vmora-vocab-session-head,
+  .vmora-vocab-detail-main,
+  .vmora-vocab-detail-card {
+    flex-direction: column;
+  }
+
+  .vmora-vocab-lesson-actions,
+  .vmora-vocab-detail-actions {
+    width: 100%;
+  }
+
+  .vmora-vocab-button,
+  .vmora-vocab-link-button,
+  .vmora-vocab-pill-button {
+    width: 100%;
+  }
+
+  .vmora-vocab-word-row,
+  .vmora-vocab-progress-copy {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .vmora-vocab-answer-actions,
+  .vmora-vocab-summary-grid,
+  .vmora-vocab-quiz-options {
+    grid-template-columns: 1fr;
+  }
+
+  .vmora-vocab-flip-card {
+    height: 360px;
+  }
+
+  .vmora-vocab-quiz-card,
+  .vmora-vocab-detail-shell,
+  .vmora-vocab-session-shell {
+    padding: 20px;
+  }
+}

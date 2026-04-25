@@ -204,6 +204,7 @@ export default function useVmoraApp() {
   const [overview, setOverview] = useState(null);
   const [packages, setPackages] = useState([]);
   const [entitlements, setEntitlements] = useState([]);
+  const [entitlementsLoaded, setEntitlementsLoaded] = useState(false);
   const [lessonDetail, setLessonDetail] = useState(null);
 
   const [practiceActivities, setPracticeActivities] = useState([]);
@@ -500,8 +501,15 @@ export default function useVmoraApp() {
   }, [languageCode, examCertificate]);
 
   useEffect(() => {
-    if (!token || !user) return;
-    getEntitlements(token).then(setEntitlements).catch(() => setEntitlements([]));
+    if (!token || !user) {
+      setEntitlementsLoaded(false);
+      return;
+    }
+    setEntitlementsLoaded(false);
+    getEntitlements(token)
+      .then(setEntitlements)
+      .catch(() => setEntitlements([]))
+      .finally(() => setEntitlementsLoaded(true));
     getMyStats(token).then(setStats).catch(() => setStats(null));
     getNotebook(token).then(setNotebook).catch(() => setNotebook([]));
     getNotebookReminders(token).then(setNotebookReminders).catch(() => setNotebookReminders([]));
@@ -1087,10 +1095,20 @@ export default function useVmoraApp() {
     }
     if (item.is_free) {
       await activateFreePackage(token, item.id);
-      getEntitlements(token).then(setEntitlements).catch(() => {});
+      const nextEntitlements = await getEntitlements(token).catch(() => null);
+      if (nextEntitlements) {
+        setEntitlements(nextEntitlements);
+      }
+      setEntitlementsLoaded(true);
       if (languageCode) {
-        getLearningOverview(languageCode, token).then(setOverview).catch(() => {});
-        getPracticeActivities(languageCode, token).then(setPracticeActivities).catch(() => {});
+        const nextOverview = await getLearningOverview(languageCode, token).catch(() => null);
+        const nextPracticeActivities = await getPracticeActivities(languageCode, token).catch(() => null);
+        if (nextOverview) {
+          setOverview(nextOverview);
+        }
+        if (nextPracticeActivities) {
+          setPracticeActivities(nextPracticeActivities);
+        }
       }
       setMessage("Đã kích hoạt gói free.");
       return { ok: true, redirectToPractice: true };
@@ -1099,10 +1117,20 @@ export default function useVmoraApp() {
     const externalUrl = payment.pay_url || payment.deeplink || payment.qr_code_url || "";
     const isSucceeded = payment.status === "succeeded";
     if (isSucceeded) {
-      getEntitlements(token).then(setEntitlements).catch(() => {});
+      const nextEntitlements = await getEntitlements(token).catch(() => null);
+      if (nextEntitlements) {
+        setEntitlements(nextEntitlements);
+      }
+      setEntitlementsLoaded(true);
       if (languageCode) {
-        getLearningOverview(languageCode, token).then(setOverview).catch(() => {});
-        getPracticeActivities(languageCode, token).then(setPracticeActivities).catch(() => {});
+        const nextOverview = await getLearningOverview(languageCode, token).catch(() => null);
+        const nextPracticeActivities = await getPracticeActivities(languageCode, token).catch(() => null);
+        if (nextOverview) {
+          setOverview(nextOverview);
+        }
+        if (nextPracticeActivities) {
+          setPracticeActivities(nextPracticeActivities);
+        }
       }
     }
     setMessage(isSucceeded ? "Đã mở gói mua, vào ôn luyện." : "Đã tạo giao dịch MoMo.");
@@ -1140,6 +1168,14 @@ export default function useVmoraApp() {
     const result = await submitPracticeActivity(activityOverride.id, body, token);
     setPracticeResult(result);
     refreshLearningRealtime(activityOverride.language_code);
+  }
+
+  async function submitPracticeAnswers(activity, answers) {
+    if (!activity) return null;
+    const result = await submitPracticeActivity(activity.id, answers, token);
+    setPracticeResult(result);
+    refreshLearningRealtime(activity.language_code);
+    return result;
   }
 
   async function openExam(item) {
@@ -1270,7 +1306,7 @@ export default function useVmoraApp() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
-      reader.onerror = () => reject(new Error("Khong doc duoc file"));
+      reader.onerror = () => reject(new Error("Không đọc được file"));
       reader.readAsDataURL(file);
     });
   }
@@ -1311,26 +1347,26 @@ export default function useVmoraApp() {
     event?.preventDefault?.();
     if (!token || !communityPostForm.content.trim()) return;
     const post = await createCommunityPost(token, {
-      title: communityPostForm.title.trim() || "Bai dang moi",
+      title: communityPostForm.title.trim() || "Bài đăng mới",
       content: communityPostForm.content.trim(),
       language_code: languageCode || null,
       image_url: communityPostForm.imageUrl || null,
     });
     setPosts((current) => [post, ...current.filter((item) => item.id !== post.id)]);
     setCommunityPostForm({ title: "", content: "", imageUrl: "" });
-    setMessage("Da dang bai vao cong dong.");
+    setMessage("Đã đăng bài vào cộng đồng.");
   }
 
   async function saveCommunityPostEdit(postId) {
     if (!token || !communityPostEditForm.content.trim()) return;
     const post = await updateCommunityPost(token, postId, {
-      title: communityPostEditForm.title.trim() || "Bai dang moi",
+      title: communityPostEditForm.title.trim() || "Bài đăng mới",
       content: communityPostEditForm.content.trim(),
       image_url: communityPostEditForm.imageUrl || null,
     });
     setPosts((current) => current.map((item) => (item.id === postId ? { ...item, ...post } : item)));
     cancelCommunityPostEdit();
-    setMessage("Da cap nhat bai viet.");
+    setMessage("Đã cập nhật bài viết.");
   }
 
   async function removeCommunityPost(postId) {
@@ -1340,7 +1376,7 @@ export default function useVmoraApp() {
     if (editingCommunityPostId === postId) {
       cancelCommunityPostEdit();
     }
-    setMessage("Da xoa bai viet.");
+    setMessage("Đã xóa bài viết.");
   }
 
   async function submitCommunityComment(postId) {
@@ -1371,7 +1407,7 @@ export default function useVmoraApp() {
     setPosts((current) =>
       current.map((item) => (item.id === postId ? { ...item, share_count: summary.share_count ?? item.share_count ?? 0 } : item)),
     );
-    setMessage("Da chia se bai viet.");
+    setMessage("Đã chia sẻ bài viết.");
   }
 
   async function reportPost(postId, reason = "Người dùng báo cáo nội dung vi phạm.") {
@@ -1797,6 +1833,7 @@ export default function useVmoraApp() {
     doLogout,
     deleteAdminQuestion,
     entitlements,
+    entitlementsLoaded,
     examCertificate,
     examAnswers,
     examDetail,
@@ -1913,6 +1950,7 @@ export default function useVmoraApp() {
     submitCommunityComment,
     submitCommunityPost,
     submitPractice,
+    submitPracticeAnswers,
     tickets,
     unlockAdminUser,
     updateAdminQuestion,

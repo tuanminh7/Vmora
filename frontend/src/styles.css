@@ -4,24 +4,24 @@
 
 :root {
   /* Palette */
-  --bg:             #f5f7ff;
-  --bg-soft:        #eef0fb;
-  --bg-mesh-1:      rgba(99, 102, 241, 0.07);
-  --bg-mesh-2:      rgba(236, 72, 153, 0.05);
-  --bg-mesh-3:      rgba(59, 130, 246, 0.04);
+  --bg:             #f8faff;
+  --bg-soft:        #f1f4fb;
+  --bg-mesh-1:      rgba(99, 102, 241, 0.045);
+  --bg-mesh-2:      rgba(236, 72, 153, 0.03);
+  --bg-mesh-3:      rgba(59, 130, 246, 0.025);
 
-  --surface:        rgba(255, 255, 255, 0.78);
+  --surface:        rgba(255, 255, 255, 0.92);
   --surface-strong: #ffffff;
-  --glass-border:   rgba(255, 255, 255, 0.65);
+  --glass-border:   rgba(203, 213, 225, 0.7);
 
   /* Text */
   --text:           #1e1b4b;
   --text-sub:       #4338ca;
-  --muted:          #64748b;
+  --muted:          #56657d;
 
   /* Lines */
-  --line:           rgba(99, 102, 241, 0.10);
-  --line-strong:    rgba(99, 102, 241, 0.18);
+  --line:           rgba(99, 102, 241, 0.12);
+  --line-strong:    rgba(99, 102, 241, 0.22);
 
   /* Accents */
   --accent:         #6366f1;
@@ -37,11 +37,11 @@
   --amber-soft:     #fef3c7;
 
   /* Shadows */
-  --shadow-xs:      0 1px 3px rgba(0,0,0,0.04);
-  --shadow-sm:      0 2px 8px rgba(99,102,241,0.06);
-  --shadow:         0 8px 32px rgba(99,102,241,0.08);
-  --shadow-lg:      0 20px 60px rgba(99,102,241,0.12);
-  --shadow-glow:    0 0 40px rgba(99,102,241,0.12);
+  --shadow-xs:      0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow-sm:      0 6px 18px rgba(15, 23, 42, 0.06);
+  --shadow:         0 14px 38px rgba(15, 23, 42, 0.08);
+  --shadow-lg:      0 24px 64px rgba(15, 23, 42, 0.12);
+  --shadow-glow:    0 0 24px rgba(99,102,241,0.08);
 
   /* Radius */
   --r-sm:  0.5rem;
@@ -97,7 +97,15 @@ select {
    PAGE BODY — offset for fixed TopNav
    ============================================================ */
 .page-body {
-  padding-top: 50px;
+  padding-top: 46px;
+}
+
+.page-body-landing {
+  padding-top: 0;
+}
+
+.page-body-landing .cinematic-hero {
+  padding-top: 80px;
 }
 
 /* ============================================================
@@ -118,11 +126,11 @@ select {
 }
 
 .topnav-scrolled {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px) saturate(1.08);
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
   border-bottom-color: var(--line);
-  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
 }
 
 .topnav-inner {
@@ -288,9 +296,9 @@ select {
   border: 1.5px solid rgba(99, 102, 241, 0.2);
   border-radius: var(--r-xl);
   background: rgba(255, 255, 255, 0.99);
-  box-shadow: 0 24px 70px rgba(30, 27, 75, 0.28);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   transform: translateX(-50%);
   pointer-events: auto;
 }
@@ -383,8 +391,8 @@ select {
   flex-direction: column;
   gap: 4px;
   padding: 12px 16px 16px;
-  background: rgba(255,255,255,0.96);
-  backdrop-filter: blur(20px);
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(10px);
   border-top: 1px solid var(--line);
   animation: slideDown 0.22s var(--ease);
 }
@@ -418,9 +426,9 @@ select {
   position: sticky;
   top: 64px;
   z-index: 90;
-  background: rgba(255,255,255,0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
 .subnav-inner {
@@ -631,9 +639,29 @@ select {
   gap: 12px;
   align-items: center;
   justify-content: center;
+  margin-bottom: 48px;
+}
+
+.hero-primary-cluster {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5%;
+  min-width: max-content;
+  flex-wrap: nowrap;
+}
+
+.hero-actions-note {
+  color: #888;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .hero-cta-primary {
+  min-width: 160px;
   padding: 14px 32px;
   border: none;
   border-radius: var(--r-full);
@@ -644,6 +672,7 @@ select {
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   box-shadow: 0 8px 28px rgba(99,102,241,0.35);
   transition: all var(--dur) var(--ease);
   animation: shimmerBg 4s ease infinite;
@@ -1638,6 +1667,10 @@ select {
   animation: meshFloat 25s ease-in-out infinite alternate;
 }
 
+.app-shell:not(.app-theme-dark)::before {
+  opacity: 0.72;
+}
+
 @keyframes meshFloat {
   0%   { transform: scale(1) translate(0, 0); }
   50%  { transform: scale(1.04) translate(-1%, 2%); }
@@ -1691,7 +1724,19 @@ select {
 .app-theme-dark .topnav-logo { color: var(--text); }
 .app-theme-dark .topnav-link { color: var(--muted); }
 .app-theme-dark .topnav-link:hover { background: rgba(99, 102, 241, 0.18); color: #a5b4fc; }
-.app-theme-dark .topnav-dropdown-trigger-open { background: rgba(99, 102, 241, 0.18); color: #a5b4fc; }
+.app-theme-dark .topnav-dropdown-trigger-open {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.34), rgba(79, 70, 229, 0.28));
+  color: #d8dbff !important;
+  box-shadow: 0 8px 22px rgba(30, 27, 75, 0.28);
+}
+.app-theme-dark .topnav-dropdown-trigger-open .topnav-link-label,
+.app-theme-dark .topnav-dropdown-trigger-open .topnav-dropdown-caret,
+.app-theme-dark .topnav-dropdown-trigger-open .topnav-link-icon {
+  color: #d8dbff !important;
+}
+.app-theme-dark .topnav-dropdown-trigger-open .topnav-link-icon-bars span {
+  background: currentColor;
+}
 .app-theme-dark .topnav-dropdown-panel {
   border-color: var(--glass-border);
   background: rgba(22, 20, 40, 0.97);
@@ -1740,6 +1785,34 @@ select {
 }
 
 /* Dark mode — Feature cards */
+.app-theme-dark .hero-badge {
+  color: #c8c7ff;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+}
+
+.app-theme-dark .cinematic-hero {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(236, 72, 153, 0.14), transparent 24%),
+    radial-gradient(circle at 82% 16%, rgba(99, 102, 241, 0.18), transparent 26%),
+    linear-gradient(135deg, #120f22 0%, #151128 30%, #121a31 70%, #10192d 100%);
+}
+
+.app-theme-dark .cinematic-title {
+  color: #f3f2fb;
+}
+
+.app-theme-dark .cinematic-subtitle {
+  color: #b9b7cb;
+}
+
+.app-theme-dark .hero-actions-note {
+  color: #8f8ca6;
+}
+
+.app-theme-dark .hero-cta-primary {
+  box-shadow: 0 16px 42px rgba(64, 38, 128, 0.38);
+}
+
 .app-theme-dark .language-showcase-card,
 .app-theme-dark .language-step-banner {
   background: rgba(22, 20, 40, 0.82);
@@ -1748,6 +1821,34 @@ select {
 
 .app-theme-dark .language-showcase-flag-wrap {
   background: rgba(12, 10, 26, 0.72);
+}
+
+.app-theme-dark .language-showcase-meta strong {
+  color: #f3f2fb;
+}
+
+.app-theme-dark .language-showcase-meta span {
+  color: #a4a1bb;
+}
+
+.app-theme-dark .cinematic-proof-card,
+.app-theme-dark .cinematic-impact-card {
+  border-color: rgba(99, 102, 241, 0.18);
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(24, 20, 42, 0.96), rgba(17, 15, 31, 0.94));
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28);
+}
+
+.app-theme-dark .cinematic-proof-card p,
+.app-theme-dark .cinematic-proof-card span,
+.app-theme-dark .cinematic-impact-card small {
+  color: #b9b7cb;
+}
+
+.app-theme-dark .cinematic-proof-card strong,
+.app-theme-dark .cinematic-impact-card span {
+  color: #f3f2fb;
 }
 
 .app-theme-dark .feature-card {
@@ -2196,8 +2297,8 @@ select {
   border-radius: 0;
   background: var(--surface);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(20px) saturate(1.2);
-  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.05);
+  -webkit-backdrop-filter: blur(10px) saturate(1.05);
 }
 
 .hero-card {
@@ -2215,7 +2316,7 @@ select {
   width: 400px;
   height: 400px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(99,102,241,0.1), transparent 70%);
+  background: radial-gradient(circle, rgba(99,102,241,0.06), transparent 70%);
   animation: heroGlow 8s ease-in-out infinite alternate;
   pointer-events: none;
 }
@@ -2228,7 +2329,7 @@ select {
   width: 300px;
   height: 300px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(236,72,153,0.07), transparent 70%);
+  background: radial-gradient(circle, rgba(236,72,153,0.045), transparent 70%);
   animation: heroGlow 10s ease-in-out 1s infinite alternate;
   pointer-events: none;
 }
@@ -3121,10 +3222,10 @@ h4 {
 
 .golden-board-row {
   display: grid;
-  grid-template-columns: 88px minmax(180px, 1.5fr) repeat(4, minmax(90px, 0.7fr));
+  grid-template-columns: 88px minmax(180px, 1.5fr) 72px repeat(4, minmax(90px, 0.7fr));
   gap: 12px;
   align-items: center;
-  min-width: 760px;
+  min-width: 840px;
   border-bottom: 1px solid rgba(99, 102, 241, 0.08);
   padding: 14px 2px;
   animation: goldenRowIn 500ms var(--ease) both;
@@ -3158,6 +3259,15 @@ h4 {
 .golden-board-row-highlight span:first-child {
   color: #b45309;
   font-weight: 800;
+}
+
+.leaderboard-language-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  line-height: 1;
+  text-align: center;
 }
 
 .app-theme-dark .golden-podium-card,
@@ -3362,10 +3472,10 @@ h4 {
 
 .ranking-top50-table-row {
   display: grid;
-  grid-template-columns: 88px minmax(180px, 1.5fr) repeat(4, minmax(90px, 0.7fr));
+  grid-template-columns: 88px minmax(180px, 1.5fr) 72px repeat(4, minmax(90px, 0.7fr));
   gap: 12px;
   align-items: center;
-  min-width: 760px;
+  min-width: 840px;
   border-bottom: 1px solid rgba(99, 102, 241, 0.08);
   padding: 14px 2px;
 }
@@ -5240,16 +5350,62 @@ h4 {
 }
 
 .mail-game-shell {
+  --mail-shell-border: rgba(99, 102, 241, 0.12);
+  --mail-shell-bg:
+    radial-gradient(circle at 0% 50%, rgba(99, 102, 241, 0.08), transparent 18rem),
+    radial-gradient(circle at 100% 0%, rgba(236, 72, 153, 0.08), transparent 16rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 244, 255, 0.96));
+  --mail-shell-shadow: 0 24px 70px rgba(99, 102, 241, 0.14);
+  --mail-topbar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 255, 0.94));
+  --mail-topbar-border: rgba(99, 102, 241, 0.12);
+  --mail-topbar-text: var(--text);
+  --mail-tab-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(238, 242, 255, 0.94));
+  --mail-tab-border: rgba(99, 102, 241, 0.14);
+  --mail-tab-text: var(--muted);
+  --mail-tab-hover-border: rgba(99, 102, 241, 0.28);
+  --mail-tab-active-bg: linear-gradient(135deg, var(--accent), var(--accent-2));
+  --mail-tab-active-border: transparent;
+  --mail-tab-active-text: #ffffff;
+  --mail-close-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(238, 242, 255, 0.94));
+  --mail-close-border: rgba(99, 102, 241, 0.18);
+  --mail-close-text: var(--text);
+  --mail-sidebar-bg: linear-gradient(180deg, rgba(248, 250, 255, 0.98), rgba(239, 243, 255, 0.96));
+  --mail-sidebar-border: rgba(99, 102, 241, 0.12);
+  --mail-sidebar-item-border: rgba(99, 102, 241, 0.08);
+  --mail-sidebar-item-text: var(--text);
+  --mail-sidebar-item-muted: var(--muted);
+  --mail-sidebar-item-bg:
+    linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(236, 72, 153, 0.02)),
+    transparent;
+  --mail-sidebar-item-hover-bg:
+    linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(236, 72, 153, 0.06)),
+    rgba(255, 255, 255, 0.72);
+  --mail-sidebar-item-active-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.14));
+  --mail-sidebar-item-active-text: var(--text);
+  --mail-sidebar-icon-bg: rgba(99, 102, 241, 0.1);
+  --mail-sidebar-icon-border: rgba(99, 102, 241, 0.12);
+  --mail-sidebar-icon-active-bg: rgba(255, 255, 255, 0.72);
+  --mail-sidebar-icon-active-border: rgba(99, 102, 241, 0.18);
+  --mail-sidebar-footer-text: var(--muted);
+  --mail-empty-text: var(--muted);
+  --mail-detail-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 255, 0.96));
+  --mail-detail-title: var(--text);
+  --mail-status-default-text: var(--text);
+  --mail-status-default-bg: rgba(255, 255, 255, 0.78);
+  --mail-status-default-border: rgba(99, 102, 241, 0.12);
+  --mail-message-border: rgba(99, 102, 241, 0.14);
+  --mail-message-meta: var(--muted);
+  --mail-message-text: var(--muted);
+  --mail-button-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(235, 239, 249, 0.96));
+  --mail-button-border: rgba(99, 102, 241, 0.16);
+  --mail-button-text: var(--text);
   display: grid;
   gap: 0;
   overflow: hidden;
-  border: 1px solid rgba(250, 204, 21, 0.16);
+  border: 1px solid var(--mail-shell-border);
   border-radius: 28px;
-  background:
-    radial-gradient(circle at 0% 50%, rgba(255, 184, 0, 0.06), transparent 18rem),
-    radial-gradient(circle at 100% 0%, rgba(236, 72, 153, 0.08), transparent 16rem),
-    linear-gradient(135deg, #140f18 0%, #1a1320 44%, #100d15 100%);
-  box-shadow: 0 28px 80px rgba(7, 4, 10, 0.42);
+  background: var(--mail-shell-bg);
+  box-shadow: var(--mail-shell-shadow);
 }
 
 .mail-game-topbar,
@@ -5259,15 +5415,15 @@ h4 {
   justify-content: space-between;
   gap: 16px;
   padding: 16px 18px;
-  background: linear-gradient(180deg, rgba(21, 15, 26, 0.96), rgba(15, 11, 18, 0.94));
+  background: var(--mail-topbar-bg);
 }
 
 .mail-game-topbar {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--mail-topbar-border);
 }
 
 .mail-game-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--mail-topbar-border);
 }
 
 .mail-game-tabs,
@@ -5279,7 +5435,7 @@ h4 {
 }
 
 .mail-game-topbar-meta {
-  color: rgba(255, 255, 255, 0.84);
+  color: var(--mail-topbar-text);
   font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
   font-size: 1.05rem;
   font-weight: 800;
@@ -5300,11 +5456,11 @@ h4 {
   align-items: center;
   gap: 10px;
   min-width: 170px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--mail-tab-border);
   border-radius: 0;
   padding: 16px 22px;
-  color: rgba(255, 255, 255, 0.82);
-  background: linear-gradient(180deg, rgba(31, 24, 36, 0.98), rgba(18, 14, 22, 0.98));
+  color: var(--mail-tab-text);
+  background: var(--mail-tab-bg);
   cursor: pointer;
   font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
   font-size: 1.02rem;
@@ -5315,16 +5471,15 @@ h4 {
 }
 
 .mail-game-tab:hover {
-  color: #fff;
-  border-color: rgba(255, 184, 0, 0.45);
+  color: var(--text);
+  border-color: var(--mail-tab-hover-border);
 }
 
 .mail-game-tab-active {
-  color: #211509;
-  border-color: rgba(255, 184, 0, 0.9);
-  background:
-    linear-gradient(180deg, #ffd24a 0%, #ffbf1f 56%, #d99100 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 246, 202, 0.45), 0 0 28px rgba(255, 184, 0, 0.18);
+  color: var(--mail-tab-active-text);
+  border-color: var(--mail-tab-active-border);
+  background: var(--mail-tab-active-bg);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 12px 28px rgba(99, 102, 241, 0.2);
 }
 
 .mail-game-tab-icon {
@@ -5336,9 +5491,9 @@ h4 {
   place-items: center;
   width: 52px;
   height: 52px;
-  border: 1px solid rgba(255, 184, 0, 0.25);
-  background: linear-gradient(180deg, rgba(43, 30, 41, 0.98), rgba(20, 14, 19, 0.98));
-  color: #fff;
+  border: 1px solid var(--mail-close-border);
+  background: var(--mail-close-bg);
+  color: var(--mail-close-text);
   cursor: pointer;
   font-size: 1.5rem;
   transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease);
@@ -5346,7 +5501,7 @@ h4 {
 
 .mail-game-close:hover {
   transform: rotate(90deg);
-  border-color: rgba(255, 184, 0, 0.55);
+  border-color: var(--mail-tab-hover-border);
 }
 
 .mail-game-board {
@@ -5359,9 +5514,8 @@ h4 {
 .mail-game-sidebar {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  background:
-    linear-gradient(180deg, rgba(27, 22, 29, 0.96), rgba(16, 14, 20, 0.98));
+  border-right: 1px solid var(--mail-sidebar-border);
+  background: var(--mail-sidebar-bg);
 }
 
 .mail-game-sidebar-list {
@@ -5378,27 +5532,22 @@ h4 {
   gap: 14px;
   width: 100%;
   border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--mail-sidebar-item-border);
   padding: 22px 18px;
-  color: rgba(255, 255, 255, 0.88);
-  background:
-    linear-gradient(135deg, rgba(255, 196, 0, 0.06), rgba(255, 196, 0, 0)),
-    transparent;
+  color: var(--mail-sidebar-item-text);
+  background: var(--mail-sidebar-item-bg);
   text-align: left;
   cursor: pointer;
   transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 
 .mail-game-list-item:hover {
-  background:
-    linear-gradient(135deg, rgba(255, 196, 0, 0.14), rgba(255, 196, 0, 0.02)),
-    rgba(255, 255, 255, 0.02);
+  background: var(--mail-sidebar-item-hover-bg);
 }
 
 .mail-game-list-item-active {
-  color: #180e03;
-  background:
-    linear-gradient(135deg, rgba(255, 209, 66, 0.98), rgba(255, 184, 0, 0.98));
+  color: var(--mail-sidebar-item-active-text);
+  background: var(--mail-sidebar-item-active-bg);
 }
 
 .mail-game-list-icon {
@@ -5406,14 +5555,14 @@ h4 {
   place-items: center;
   width: 48px;
   height: 48px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--mail-sidebar-icon-border);
+  background: var(--mail-sidebar-icon-bg);
   font-size: 1.35rem;
 }
 
 .mail-game-list-item-active .mail-game-list-icon {
-  border-color: rgba(24, 14, 3, 0.16);
-  background: rgba(255, 255, 255, 0.32);
+  border-color: var(--mail-sidebar-icon-active-border);
+  background: var(--mail-sidebar-icon-active-bg);
 }
 
 .mail-game-list-copy {
@@ -5445,20 +5594,20 @@ h4 {
 
 .mail-game-list-copy span,
 .mail-game-list-copy small {
-  color: inherit;
-  opacity: 0.78;
+  color: var(--mail-sidebar-item-muted);
+  opacity: 1;
 }
 
 .mail-game-sidebar-footer {
   padding: 18px;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--mail-sidebar-footer-text);
   text-align: center;
 }
 
 .mail-game-empty {
   margin: 0;
   padding: 28px 18px;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--mail-empty-text);
   text-align: center;
 }
 
@@ -5467,8 +5616,7 @@ h4 {
   align-content: start;
   gap: 18px;
   padding: 28px 32px;
-  background:
-    linear-gradient(180deg, rgba(234, 234, 236, 0.96), rgba(206, 209, 216, 0.98));
+  background: var(--mail-detail-bg);
 }
 
 .mail-game-detail-head,
@@ -5481,7 +5629,7 @@ h4 {
 
 .mail-game-detail-head h3 {
   margin: 0;
-  color: #272229;
+  color: var(--mail-detail-title);
   font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
   font-size: clamp(2rem, 4vw, 3rem);
   text-transform: uppercase;
@@ -5491,9 +5639,9 @@ h4 {
   display: inline-flex;
   align-items: center;
   padding: 10px 16px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  color: #1f2937;
-  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid var(--mail-status-default-border);
+  color: var(--mail-status-default-text);
+  background: var(--mail-status-default-bg);
   font-size: 0.88rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -5636,11 +5784,11 @@ h4 {
   display: grid;
   gap: 12px;
   padding: 22px 0 0;
-  border-top: 2px solid rgba(39, 34, 41, 0.16);
+  border-top: 2px solid var(--mail-message-border);
 }
 
 .mail-game-message-meta {
-  color: rgba(39, 34, 41, 0.72);
+  color: var(--mail-message-meta);
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -5648,7 +5796,7 @@ h4 {
 .mail-game-message p,
 .mail-game-detail-empty p {
   margin: 0;
-  color: #3b3540;
+  color: var(--mail-message-text);
   line-height: 1.85;
   white-space: pre-line;
 }
@@ -5661,10 +5809,10 @@ h4 {
 .mail-game-cta,
 .mail-game-bottom-button {
   min-width: 190px;
-  border: 1px solid rgba(0, 0, 0, 0.16);
+  border: 1px solid var(--mail-button-border);
   padding: 15px 22px;
-  color: #18120f;
-  background: linear-gradient(180deg, #ffffff 0%, #ececec 100%);
+  color: var(--mail-button-text);
+  background: var(--mail-button-bg);
   cursor: pointer;
   font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
   font-size: 1rem;
@@ -5681,9 +5829,9 @@ h4 {
 }
 
 .mail-game-bottom-button-primary {
-  color: #180e03;
-  border-color: rgba(255, 184, 0, 0.35);
-  background: linear-gradient(180deg, #ffd24a 0%, #ffbf1f 56%, #d99100 100%);
+  color: #ffffff;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
 }
 
 .mail-game-bottom-button:disabled {
@@ -5699,8 +5847,59 @@ h4 {
 }
 
 .mail-game-detail-empty strong {
-  color: #272229;
+  color: var(--mail-detail-title);
   font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.app-theme-dark .mail-game-shell {
+  --mail-shell-border: rgba(99, 102, 241, 0.18);
+  --mail-shell-bg:
+    radial-gradient(circle at 0% 50%, rgba(99, 102, 241, 0.14), transparent 18rem),
+    radial-gradient(circle at 100% 0%, rgba(236, 72, 153, 0.12), transparent 16rem),
+    linear-gradient(135deg, rgba(16, 16, 29, 0.98), rgba(22, 20, 40, 0.98) 44%, rgba(13, 15, 27, 0.98));
+  --mail-shell-shadow: 0 28px 80px rgba(7, 4, 10, 0.42);
+  --mail-topbar-bg: linear-gradient(180deg, rgba(22, 20, 40, 0.96), rgba(16, 15, 30, 0.94));
+  --mail-topbar-border: rgba(255, 255, 255, 0.06);
+  --mail-topbar-text: rgba(255, 255, 255, 0.84);
+  --mail-tab-bg: linear-gradient(180deg, rgba(31, 24, 36, 0.98), rgba(18, 14, 22, 0.98));
+  --mail-tab-border: rgba(255, 255, 255, 0.08);
+  --mail-tab-text: rgba(255, 255, 255, 0.82);
+  --mail-tab-hover-border: rgba(255, 184, 0, 0.45);
+  --mail-tab-active-bg: linear-gradient(180deg, #ffd24a 0%, #ffbf1f 56%, #d99100 100%);
+  --mail-tab-active-text: #211509;
+  --mail-close-bg: linear-gradient(180deg, rgba(43, 30, 41, 0.98), rgba(20, 14, 19, 0.98));
+  --mail-close-border: rgba(255, 184, 0, 0.25);
+  --mail-close-text: #ffffff;
+  --mail-sidebar-bg: linear-gradient(180deg, rgba(27, 22, 29, 0.96), rgba(16, 14, 20, 0.98));
+  --mail-sidebar-border: rgba(255, 255, 255, 0.06);
+  --mail-sidebar-item-border: rgba(255, 255, 255, 0.06);
+  --mail-sidebar-item-text: rgba(255, 255, 255, 0.88);
+  --mail-sidebar-item-muted: rgba(255, 255, 255, 0.72);
+  --mail-sidebar-item-bg:
+    linear-gradient(135deg, rgba(255, 196, 0, 0.06), rgba(255, 196, 0, 0)),
+    transparent;
+  --mail-sidebar-item-hover-bg:
+    linear-gradient(135deg, rgba(255, 196, 0, 0.14), rgba(255, 196, 0, 0.02)),
+    rgba(255, 255, 255, 0.02);
+  --mail-sidebar-item-active-bg: linear-gradient(135deg, rgba(255, 209, 66, 0.98), rgba(255, 184, 0, 0.98));
+  --mail-sidebar-item-active-text: #180e03;
+  --mail-sidebar-icon-bg: rgba(0, 0, 0, 0.22);
+  --mail-sidebar-icon-border: rgba(255, 255, 255, 0.08);
+  --mail-sidebar-icon-active-bg: rgba(255, 255, 255, 0.32);
+  --mail-sidebar-icon-active-border: rgba(24, 14, 3, 0.16);
+  --mail-sidebar-footer-text: rgba(255, 255, 255, 0.72);
+  --mail-empty-text: rgba(255, 255, 255, 0.62);
+  --mail-detail-bg: linear-gradient(180deg, rgba(234, 234, 236, 0.96), rgba(206, 209, 216, 0.98));
+  --mail-detail-title: #272229;
+  --mail-status-default-text: #1f2937;
+  --mail-status-default-bg: rgba(255, 255, 255, 0.68);
+  --mail-status-default-border: rgba(0, 0, 0, 0.08);
+  --mail-message-border: rgba(39, 34, 41, 0.16);
+  --mail-message-meta: rgba(39, 34, 41, 0.72);
+  --mail-message-text: #3b3540;
+  --mail-button-bg: linear-gradient(180deg, #ffffff 0%, #ececec 100%);
+  --mail-button-border: rgba(0, 0, 0, 0.16);
+  --mail-button-text: #18120f;
 }
 
 /* ============================================================
@@ -8216,7 +8415,8 @@ h4 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.admin-inline-form input {
+.admin-inline-form input,
+.admin-inline-form select {
   border: 1.5px solid var(--line-strong);
   border-radius: var(--r-md);
   padding: 10px 12px;
@@ -8225,7 +8425,8 @@ h4 {
   font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
 }
 
-.admin-inline-form input:focus {
+.admin-inline-form input:focus,
+.admin-inline-form select:focus {
   border-color: var(--accent);
   outline: none;
   box-shadow: 0 0 0 3px var(--accent-soft);
@@ -9201,7 +9402,7 @@ h4 {
 /* ============================================================
    RESPONSIVE — TopNav & Hero
    ============================================================ */
-@media (max-width: 800px) {
+@media (max-width: 768px) {
   /* Show burger, hide desktop nav links */
   .topnav-links {
     display: none;
@@ -9302,22 +9503,34 @@ h4 {
 
 .cinematic-hero {
   position: relative;
-  display: grid;
-  justify-items: center;
-  min-height: 82vh;
-  padding: 88px 24px 34px;
+  min-height: calc(100vh - 46px);
+  padding: 80px 0 56px;
+  background: linear-gradient(135deg, #f0e6ff 0%, #e8e0f8 30%, #dde8ff 70%, #e0ecff 100%);
   overflow: hidden;
+}
+
+.cinematic-hero-inner {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 40px;
 }
 
 .cinematic-hero-copy {
   position: relative;
-  z-index: 2;
   display: grid;
   justify-items: center;
   gap: 22px;
   width: min(960px, 100%);
   text-align: center;
-  transform: translateY(-10%);
+  margin: 0 auto;
+  text-align: center;
+  transform: none;
 }
 
 .cinematic-title {
@@ -9329,7 +9542,7 @@ h4 {
   margin: 0;
   color: var(--text);
   font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
-  font-size: clamp(3rem, 7vw, 5.6rem);
+  font-size: clamp(2.4rem, 5.6vw, 4.48rem);
   font-weight: 900;
   line-height: 0.98;
   letter-spacing: -0.055em;
@@ -9414,14 +9627,25 @@ h4 {
 .cinematic-roadmap-section {
   position: relative;
   z-index: 2;
-  width: min(1400px, calc(100% - 48px));
+  width: min(1280px, calc(100% - 80px));
   margin: 0 auto;
   padding: 36px 0;
 }
 
 .cinematic-language-section {
-  margin-top: -12vh;
+  width: 100%;
+  margin-top: 0;
   padding-top: 0;
+}
+
+.cinematic-language-section .language-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
 }
 
 .cinematic-language-section .language-showcase-card {
@@ -9431,6 +9655,16 @@ h4 {
 
 .cinematic-flag-card {
   will-change: transform;
+}
+
+.cinematic-language-section .language-showcase-flag-wrap {
+  height: 180px;
+  aspect-ratio: auto;
+}
+
+.cinematic-language-section .language-showcase-flag {
+  height: 180px;
+  object-fit: cover;
 }
 
 .cinematic-section-head {
@@ -9474,6 +9708,54 @@ h4 {
   margin-top: 16px;
 }
 
+.cinematic-proof-card {
+  min-height: 0;
+  gap: 14px;
+  padding: 26px;
+  border-color: rgba(99, 102, 241, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(236, 72, 153, 0.1), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 255, 0.9));
+  box-shadow: var(--shadow-sm);
+}
+
+.cinematic-proof-card::before {
+  color: rgba(99, 102, 241, 0.08);
+}
+
+.cinematic-proof-card p {
+  margin-bottom: 0;
+  color: #334155;
+  font-weight: 650;
+}
+
+.cinematic-proof-card strong {
+  color: var(--text);
+}
+
+.cinematic-proof-card span {
+  color: var(--muted);
+}
+
+.cinematic-impact-card {
+  min-height: 0;
+  padding: 24px 26px;
+  border-color: rgba(99, 102, 241, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.14), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 255, 0.9));
+  box-shadow: var(--shadow-sm);
+}
+
+.cinematic-impact-card span {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.cinematic-impact-card small {
+  color: var(--muted);
+}
+
 .cinematic-timeline-section {
   position: relative;
 }
@@ -9506,28 +9788,49 @@ h4 {
 @media (max-width: 800px) {
   .cinematic-hero {
     min-height: 0;
-    padding: 72px 16px 30px;
+    padding: 72px 0 36px;
+  }
+
+  .page-body-landing .cinematic-hero {
+    padding-top: 72px;
   }
 
   .cinematic-title {
     font-size: clamp(2.35rem, 13vw, 4rem);
   }
 
+  .cinematic-hero-inner {
+    padding: 0 20px;
+  }
+
   .cinematic-language-section,
   .cinematic-stats-section,
   .cinematic-roadmap-section {
-    width: calc(100% - 32px);
+    width: calc(100% - 40px);
     padding: 28px 0;
   }
 
-  .cinematic-language-section {
-    margin-top: -32px;
+  .cinematic-language-section .language-showcase-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 24px;
+  }
+
+  .cinematic-language-section .language-showcase-grid > :last-child {
+    grid-column: 1 / -1;
   }
 
   .cinematic-section-head,
   .cinematic-testimonial-grid,
   .cinematic-stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .hero-actions-note {
+    text-align: left;
+  }
+
+  .hero-primary-cluster {
+    gap: 14px;
   }
 
   .cinematic-timeline-line {
@@ -9862,32 +10165,32 @@ h4 {
 
 .roadmap-page-shell {
   --roadmap-board-bg:
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.14), transparent 32%),
-    radial-gradient(circle at left center, rgba(56, 189, 248, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 243, 255, 0.96));
-  --roadmap-board-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.52), transparent 24%, transparent 76%, rgba(99, 102, 241, 0.08));
-  --roadmap-board-border: rgba(99, 102, 241, 0.12);
-  --roadmap-board-shadow: 0 26px 60px rgba(99, 102, 241, 0.12);
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 30%),
+    radial-gradient(circle at left center, rgba(56, 189, 248, 0.04), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(247, 248, 255, 0.99));
+  --roadmap-board-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 26%, transparent 74%, rgba(99, 102, 241, 0.04));
+  --roadmap-board-border: rgba(99, 102, 241, 0.1);
+  --roadmap-board-shadow: 0 22px 48px rgba(15, 23, 42, 0.08), 0 8px 18px rgba(99, 102, 241, 0.08);
   --roadmap-title: rgba(17, 24, 39, 0.96);
-  --roadmap-text: rgba(31, 41, 55, 0.9);
-  --roadmap-muted: rgba(55, 65, 81, 0.7);
+  --roadmap-text: rgba(31, 41, 55, 0.94);
+  --roadmap-muted: rgba(55, 65, 81, 0.82);
   --roadmap-line: linear-gradient(180deg, rgba(129, 140, 248, 0.65), rgba(129, 140, 248, 0.12));
-  --roadmap-index-bg: rgba(255, 255, 255, 0.95);
+  --roadmap-index-bg: rgba(255, 255, 255, 0.98);
   --roadmap-index-border: rgba(99, 102, 241, 0.14);
   --roadmap-index-text: rgba(31, 41, 55, 0.92);
-  --roadmap-index-shadow: 0 10px 30px rgba(99, 102, 241, 0.12);
-  --roadmap-card-bg: rgba(255, 255, 255, 0.82);
-  --roadmap-card-border: rgba(99, 102, 241, 0.12);
+  --roadmap-index-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --roadmap-card-bg: rgba(255, 255, 255, 0.94);
+  --roadmap-card-border: rgba(99, 102, 241, 0.1);
   --roadmap-card-hover-border: rgba(99, 102, 241, 0.26);
   --roadmap-card-active-bg:
-    linear-gradient(180deg, rgba(99, 102, 241, 0.1), rgba(255, 255, 255, 0.92)),
-    rgba(255, 255, 255, 0.92);
+    linear-gradient(180deg, rgba(99, 102, 241, 0.06), rgba(255, 255, 255, 0.98)),
+    rgba(255, 255, 255, 0.98);
   --roadmap-card-focus-bg:
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 36%),
-    linear-gradient(180deg, rgba(99, 102, 241, 0.08), rgba(255, 255, 255, 0.92));
-  --roadmap-chip-bg: rgba(99, 102, 241, 0.08);
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.07), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 249, 255, 0.98));
+  --roadmap-chip-bg: rgba(99, 102, 241, 0.06);
   --roadmap-chip-border: rgba(99, 102, 241, 0.12);
-  --roadmap-chip-text: rgba(31, 41, 55, 0.84);
+  --roadmap-chip-text: rgba(31, 41, 55, 0.9);
   --roadmap-footer-line: rgba(99, 102, 241, 0.12);
   --roadmap-secondary-bg: rgba(99, 102, 241, 0.08);
   --roadmap-secondary-border: rgba(99, 102, 241, 0.16);
@@ -9898,32 +10201,32 @@ h4 {
 
 .app-theme-dark .roadmap-page-shell {
   --roadmap-board-bg:
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.2), transparent 30%),
-    radial-gradient(circle at left center, rgba(56, 189, 248, 0.1), transparent 28%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.88));
-  --roadmap-board-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 24%, transparent 76%, rgba(99, 102, 241, 0.08));
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.14), transparent 28%),
+    radial-gradient(circle at left center, rgba(56, 189, 248, 0.06), transparent 24%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.94));
+  --roadmap-board-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.03), transparent 26%, transparent 74%, rgba(99, 102, 241, 0.05));
   --roadmap-board-border: rgba(148, 163, 184, 0.14);
   --roadmap-board-shadow: 0 30px 80px rgba(2, 6, 23, 0.42);
   --roadmap-title: #f8fafc;
-  --roadmap-text: rgba(226, 232, 240, 0.9);
-  --roadmap-muted: rgba(226, 232, 240, 0.76);
+  --roadmap-text: rgba(226, 232, 240, 0.94);
+  --roadmap-muted: rgba(226, 232, 240, 0.82);
   --roadmap-line: linear-gradient(180deg, rgba(129, 140, 248, 0.65), rgba(148, 163, 184, 0.08));
-  --roadmap-index-bg: rgba(15, 23, 42, 0.88);
+  --roadmap-index-bg: rgba(15, 23, 42, 0.94);
   --roadmap-index-border: rgba(148, 163, 184, 0.18);
-  --roadmap-index-text: rgba(226, 232, 240, 0.88);
+  --roadmap-index-text: rgba(226, 232, 240, 0.94);
   --roadmap-index-shadow: 0 10px 30px rgba(15, 23, 42, 0.36);
-  --roadmap-card-bg: rgba(15, 23, 42, 0.72);
+  --roadmap-card-bg: rgba(15, 23, 42, 0.84);
   --roadmap-card-border: rgba(148, 163, 184, 0.12);
   --roadmap-card-hover-border: rgba(129, 140, 248, 0.24);
   --roadmap-card-active-bg:
-    linear-gradient(180deg, rgba(99, 102, 241, 0.12), rgba(15, 23, 42, 0.78)),
-    rgba(15, 23, 42, 0.78);
+    linear-gradient(180deg, rgba(99, 102, 241, 0.1), rgba(15, 23, 42, 0.9)),
+    rgba(15, 23, 42, 0.9);
   --roadmap-card-focus-bg:
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.16), transparent 36%),
-    linear-gradient(180deg, rgba(99, 102, 241, 0.1), rgba(15, 23, 42, 0.84));
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(99, 102, 241, 0.08), rgba(15, 23, 42, 0.88));
   --roadmap-chip-bg: rgba(255, 255, 255, 0.04);
   --roadmap-chip-border: rgba(148, 163, 184, 0.14);
-  --roadmap-chip-text: rgba(226, 232, 240, 0.82);
+  --roadmap-chip-text: rgba(226, 232, 240, 0.9);
   --roadmap-footer-line: rgba(148, 163, 184, 0.12);
   --roadmap-secondary-bg: rgba(255, 255, 255, 0.06);
   --roadmap-secondary-border: rgba(129, 140, 248, 0.18);
@@ -9946,6 +10249,7 @@ h4 {
   inset: 0;
   pointer-events: none;
   background: var(--roadmap-board-overlay);
+  opacity: 0.82;
 }
 
 .roadmap-board-head,
@@ -9980,12 +10284,18 @@ h4 {
 }
 
 .roadmap-board-copy > p:last-child,
-.roadmap-board-status p,
-.roadmap-board-footer p,
 .roadmap-step-copy {
+  margin: 12px 0 0;
+  color: var(--roadmap-text);
+  line-height: 1.7;
+}
+
+.roadmap-board-status p,
+.roadmap-board-footer p {
   margin: 12px 0 0;
   color: var(--roadmap-muted);
   line-height: 1.7;
+  font-weight: 500;
 }
 
 .roadmap-board-status {
@@ -10001,18 +10311,18 @@ h4 {
   align-items: center;
   justify-content: center;
   padding: 10px 16px;
-  border: 1px solid rgba(129, 140, 248, 0.24);
+  border: 1px solid rgba(129, 140, 248, 0.28);
   border-radius: 999px;
-  background: rgba(99, 102, 241, 0.1);
-  color: #c7d2fe;
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
   font-size: 0.84rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .roadmap-status-chip-open {
-  border-color: rgba(74, 222, 128, 0.28);
+  border-color: rgba(34, 197, 94, 0.22);
   background: rgba(34, 197, 94, 0.12);
-  color: #bbf7d0;
+  color: #16a34a;
 }
 
 .roadmap-steps {
@@ -10072,7 +10382,7 @@ h4 {
   border: 1px solid var(--roadmap-card-border);
   border-radius: 28px;
   background: var(--roadmap-card-bg);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
 
@@ -10084,7 +10394,7 @@ h4 {
 .roadmap-step-card-active {
   border-color: rgba(129, 140, 248, 0.34);
   background: var(--roadmap-card-active-bg);
-  box-shadow: 0 22px 50px rgba(15, 23, 42, 0.36);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
 }
 
 .roadmap-step-card-focus {
@@ -10113,22 +10423,53 @@ h4 {
   border-radius: 999px;
   font-size: 0.82rem;
   font-weight: 800;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 
 .roadmap-step-badge-free {
+  border-color: rgba(34, 197, 94, 0.22);
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.roadmap-step-badge-active {
+  border-color: rgba(99, 102, 241, 0.22);
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+}
+
+.roadmap-step-badge-paid {
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.app-theme-dark .roadmap-status-chip {
+  border-color: rgba(129, 140, 248, 0.24);
+  background: rgba(99, 102, 241, 0.1);
+  color: #c7d2fe;
+}
+
+.app-theme-dark .roadmap-status-chip-open {
+  border-color: rgba(74, 222, 128, 0.28);
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+}
+
+.app-theme-dark .roadmap-step-badge-free {
   border-color: rgba(74, 222, 128, 0.24);
   background: rgba(34, 197, 94, 0.12);
   color: #bbf7d0;
 }
 
-.roadmap-step-badge-active {
+.app-theme-dark .roadmap-step-badge-active {
   border-color: rgba(129, 140, 248, 0.3);
   background: rgba(99, 102, 241, 0.16);
   color: #c7d2fe;
 }
 
-.roadmap-step-badge-paid {
+.app-theme-dark .roadmap-step-badge-paid {
   border-color: rgba(251, 191, 36, 0.28);
   background: rgba(245, 158, 11, 0.12);
   color: #fde68a;

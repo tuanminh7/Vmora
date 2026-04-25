@@ -209,7 +209,7 @@ async def get_admin_contact_profile():
         )
         admin_user = result.scalar_one_or_none()
         if admin_user is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chua co admin ho tro")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chưa có admin hỗ trợ")
         return to_admin_contact_profile_out(admin_user)
 
 

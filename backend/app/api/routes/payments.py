@@ -30,7 +30,7 @@ async def create_momo_transaction(
         if package is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Gói không tồn tại")
         if not package.is_active:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Goi hoc dang tam dung thanh toan")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Gói học đang tạm dừng thanh toán")
         if package.is_free:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Gói free không cần thanh toán MoMo")
 

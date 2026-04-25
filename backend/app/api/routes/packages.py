@@ -73,7 +73,7 @@ async def activate_free_package(
         if package is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Gói không tồn tại")
         if not package.is_active:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Goi hoc dang tam dung kich hoat")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Gói học đang tạm dừng kích hoạt")
         if not package.is_free:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Đây không phải gói free")
 

@@ -102,9 +102,9 @@ def to_public_user_id(user_id: int) -> str:
 def parse_public_user_id(raw_value: object) -> int:
     value = str(raw_value or "").strip()
     if not value:
-        raise HTTPException(status_code=422, detail="Thieu user_id nguoi nhan")
+        raise HTTPException(status_code=422, detail="Thiếu user_id người nhận")
     if not value.isdigit() or len(value) < 5:
-        raise HTTPException(status_code=422, detail="user_id phai la chuoi so gom it nhat 5 chu so")
+        raise HTTPException(status_code=422, detail="user_id phải là chuỗi số gồm ít nhất 5 chữ số")
     return int(value)
 
 
@@ -1075,7 +1075,7 @@ async def create_manual_entitlement(payload: dict, admin: User = Depends(get_adm
         if package is None:
             raise HTTPException(status_code=404, detail="Gói không tồn tại")
         if not package.is_active:
-            raise HTTPException(status_code=400, detail="Goi hoc dang tam dung kich hoat")
+            raise HTTPException(status_code=400, detail="Gói học đang tạm dừng kích hoạt")
         entitlement = await grant_entitlement(session, user_id=int(user_id), package=package)
         await record_admin_action(
             session,

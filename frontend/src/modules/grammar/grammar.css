@@ -1,0 +1,361 @@
+.vmora-grammar-page {
+  --vmora-grammar-text: #0f172a;
+  --vmora-grammar-muted: #475569;
+  --vmora-grammar-surface: rgba(255, 255, 255, 0.92);
+  --vmora-grammar-surface-soft: rgba(248, 250, 252, 0.88);
+  --vmora-grammar-border: rgba(148, 163, 184, 0.22);
+  --vmora-grammar-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+  --vmora-grammar-purple: #7c3aed;
+  color: var(--vmora-grammar-text);
+  min-height: calc(100vh - 116px);
+  padding: 24px 0 32px;
+}
+
+.app-theme-dark .vmora-grammar-page {
+  --vmora-grammar-text: #f8fafc;
+  --vmora-grammar-muted: #cbd5e1;
+  --vmora-grammar-surface: rgba(15, 23, 42, 0.84);
+  --vmora-grammar-surface-soft: rgba(30, 41, 59, 0.74);
+  --vmora-grammar-border: rgba(148, 163, 184, 0.18);
+  --vmora-grammar-shadow: 0 22px 52px rgba(2, 6, 23, 0.3);
+}
+
+.vmora-grammar-wrap {
+  margin: 0 auto;
+  max-width: 1420px;
+  padding: 0 22px;
+}
+
+.vmora-grammar-hero,
+.vmora-grammar-browser,
+.vmora-grammar-practice-shell,
+.vmora-grammar-rule-card,
+.vmora-grammar-question-card,
+.vmora-grammar-result-card,
+.vmora-grammar-empty {
+  backdrop-filter: blur(16px);
+  background: var(--vmora-grammar-surface);
+  border: 1px solid var(--vmora-grammar-border);
+  border-radius: 18px;
+  box-shadow: var(--vmora-grammar-shadow);
+}
+
+.vmora-grammar-hero,
+.vmora-grammar-browser,
+.vmora-grammar-practice-shell,
+.vmora-grammar-result-card,
+.vmora-grammar-empty {
+  padding: 24px;
+}
+
+.vmora-grammar-kicker,
+.vmora-grammar-topic-label {
+  color: var(--vmora-grammar-purple);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.vmora-grammar-hero h1,
+.vmora-grammar-browser-head h2,
+.vmora-grammar-rule-card h1,
+.vmora-grammar-question-card h2,
+.vmora-grammar-result-card h1 {
+  margin: 0;
+}
+
+.vmora-grammar-hero p,
+.vmora-grammar-browser-head p,
+.vmora-grammar-question-card p,
+.vmora-grammar-lesson-row-copy p,
+.vmora-grammar-result-item p,
+.vmora-grammar-result-item span,
+.vmora-grammar-result-item small,
+.vmora-grammar-empty p {
+  color: var(--vmora-grammar-muted);
+}
+
+.vmora-grammar-hero-meta,
+.vmora-grammar-browser-stats,
+.vmora-grammar-lesson-row-meta,
+.vmora-grammar-pagination {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.vmora-grammar-hero-meta {
+  margin-top: 16px;
+}
+
+.vmora-grammar-browser {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.vmora-grammar-browser-toolbar,
+.vmora-grammar-browser-head,
+.vmora-grammar-practice-head,
+.vmora-grammar-actions {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.vmora-grammar-topic-pills {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vmora-grammar-topic-pill {
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--vmora-grammar-text);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  padding: 10px 14px;
+}
+
+.vmora-grammar-topic-pill.is-active {
+  background: rgba(124, 58, 237, 0.14);
+  border-color: rgba(124, 58, 237, 0.32);
+}
+
+.vmora-grammar-search {
+  display: grid;
+  gap: 8px;
+  min-width: 280px;
+}
+
+.vmora-grammar-search span {
+  color: var(--vmora-grammar-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.vmora-grammar-search input {
+  background: var(--vmora-grammar-surface-soft);
+  border: 1px solid var(--vmora-grammar-border);
+  border-radius: 14px;
+  color: var(--vmora-grammar-text);
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.vmora-grammar-search input:focus {
+  border-color: rgba(124, 58, 237, 0.42);
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+  outline: none;
+}
+
+.vmora-grammar-lesson-list {
+  display: grid;
+  gap: 12px;
+}
+
+.vmora-grammar-lesson-row {
+  align-items: center;
+  background: var(--vmora-grammar-surface-soft);
+  border: 1px solid var(--vmora-grammar-border);
+  border-radius: 14px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 18px;
+}
+
+.vmora-grammar-lesson-row-copy,
+.vmora-grammar-result-list {
+  display: grid;
+  gap: 10px;
+}
+
+.vmora-grammar-lesson-row-top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vmora-grammar-primary,
+.vmora-grammar-ghost {
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 800;
+  min-height: 44px;
+  min-width: 140px;
+  padding: 0 16px;
+}
+
+.vmora-grammar-primary {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  border: 0;
+  color: #ffffff;
+}
+
+.vmora-grammar-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.vmora-grammar-ghost {
+  background: transparent;
+  border: 1px solid rgba(124, 58, 237, 0.24);
+  color: var(--vmora-grammar-purple);
+}
+
+.vmora-grammar-link {
+  color: var(--vmora-grammar-muted);
+  text-decoration: none;
+}
+
+.vmora-grammar-practice-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.vmora-grammar-progress {
+  flex: 1;
+}
+
+.vmora-grammar-progress-copy {
+  align-items: center;
+  color: var(--vmora-grammar-muted);
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.vmora-grammar-progress-track {
+  background: rgba(124, 58, 237, 0.1);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.vmora-grammar-progress-bar {
+  background: linear-gradient(90deg, #a855f7, #7c3aed);
+  border-radius: inherit;
+  height: 100%;
+}
+
+.vmora-grammar-rule-card,
+.vmora-grammar-question-card {
+  padding: 20px;
+}
+
+.vmora-grammar-options {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.vmora-grammar-option {
+  background: var(--vmora-grammar-surface-soft);
+  border: 1px solid var(--vmora-grammar-border);
+  border-radius: 14px;
+  color: var(--vmora-grammar-text);
+  cursor: pointer;
+  min-height: 76px;
+  padding: 16px;
+  text-align: left;
+}
+
+.vmora-grammar-option.is-selected {
+  background: rgba(124, 58, 237, 0.08);
+  border-color: rgba(124, 58, 237, 0.34);
+}
+
+.vmora-grammar-result-score {
+  display: grid;
+  gap: 6px;
+  justify-content: center;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.vmora-grammar-result-score strong {
+  font-size: clamp(2.4rem, 6vw, 4rem);
+}
+
+.vmora-grammar-result-item {
+  border: 1px solid var(--vmora-grammar-border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.vmora-grammar-result-item.is-correct {
+  background: rgba(22, 163, 74, 0.08);
+  border-color: rgba(22, 163, 74, 0.28);
+}
+
+.vmora-grammar-result-item.is-wrong {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.24);
+}
+
+.vmora-grammar-badge {
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.vmora-grammar-badge-basic {
+  background: rgba(22, 163, 74, 0.12);
+  color: #16a34a;
+}
+
+.vmora-grammar-badge-mid {
+  background: rgba(234, 179, 8, 0.18);
+  color: #a16207;
+}
+
+.vmora-grammar-badge-hard {
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
+}
+
+@media (max-width: 960px) {
+  .vmora-grammar-browser-toolbar,
+  .vmora-grammar-browser-head,
+  .vmora-grammar-practice-head,
+  .vmora-grammar-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vmora-grammar-search {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .vmora-grammar-lesson-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .vmora-grammar-wrap {
+    padding: 0 18px;
+  }
+
+  .vmora-grammar-options {
+    grid-template-columns: 1fr;
+  }
+
+  .vmora-grammar-primary,
+  .vmora-grammar-ghost {
+    width: 100%;
+  }
+}

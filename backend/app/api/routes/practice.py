@@ -40,8 +40,8 @@ def evaluate_activity(activity: PracticeActivity, answers: Any) -> tuple[bool | 
             revealed = bool(answers.get("revealed"))
         return _score_boolean(
             revealed,
-            "Da xem xong flashcard.",
-            "Hay mo flashcard de xem nghia va tu.",
+            "Đã xem xong flashcard.",
+            "Hãy mở flashcard để xem nghĩa và từ.",
         ) + (None,)
 
     if activity_type in {"quiz", "image"}:
@@ -53,7 +53,7 @@ def evaluate_activity(activity: PracticeActivity, answers: Any) -> tuple[bool | 
         return (
             is_correct,
             100 if is_correct else 0,
-            "Chinh xac." if is_correct else "Chua dung, thu lai mot dap an khac.",
+            "Chính xác." if is_correct else "Chưa đúng, thử lại một đáp án khác.",
             correct_option,
         )
 
@@ -70,14 +70,14 @@ def evaluate_activity(activity: PracticeActivity, answers: Any) -> tuple[bool | 
         correct_pairs = {str(key): str(value) for key, value in (payload.get("correct_pairs") or {}).items()}
         total = len(correct_pairs)
         if total == 0:
-            return None, 0, "Chua co du lieu ghep cap.", None
+            return None, 0, "Chưa có dữ liệu ghép cặp.", None
         matched = sum(1 for key, value in correct_pairs.items() if submitted_pairs.get(key) == value)
         score = round((matched / total) * 100)
         is_correct = matched == total
         return (
             is_correct,
             score,
-            f"Ban ghep dung {matched}/{total} cap.",
+            f"Bạn ghép đúng {matched}/{total} cặp.",
             correct_pairs,
         )
 
@@ -93,7 +93,7 @@ def evaluate_activity(activity: PracticeActivity, answers: Any) -> tuple[bool | 
         return (
             is_correct,
             100 if is_correct else 0,
-            "Dung roi." if is_correct else "Chua dung, ban co the thu lai.",
+            "Đúng rồi." if is_correct else "Chưa đúng, bạn có thể thử lại.",
             expected,
         )
 
@@ -103,8 +103,8 @@ def evaluate_activity(activity: PracticeActivity, answers: Any) -> tuple[bool | 
             completed = bool(answers.get("completed"))
         return _score_boolean(
             completed,
-            "Da danh dau xem xong video.",
-            "Hay xem video va bam hoan thanh.",
+            "Đã đánh dấu xem xong video.",
+            "Hãy xem video và bấm hoàn thành.",
         ) + (None,)
 
     if activity_type == "mixed":
@@ -120,7 +120,7 @@ def evaluate_activity(activity: PracticeActivity, answers: Any) -> tuple[bool | 
 
         questions = payload.get("questions") or []
         if not questions:
-            return None, 0, "Chua co cau hoi tong hop.", None
+            return None, 0, "Chưa có câu hỏi tổng hợp.", None
 
         correct_count = 0
         expected_answers: dict[str, Any] = {}
@@ -144,11 +144,11 @@ def evaluate_activity(activity: PracticeActivity, answers: Any) -> tuple[bool | 
         return (
             correct_count == total,
             score,
-            f"Ban dung {correct_count}/{total} cau trong bai tong hop.",
+            f"Bạn đúng {correct_count}/{total} câu trong bài tổng hợp.",
             expected_answers,
         )
 
-    return None, 0, "Loai hoat dong nay chua duoc ho tro cham diem.", None
+    return None, 0, "Loại hoạt động này chưa được hỗ trợ chấm điểm.", None
 
 
 def to_activity_out(activity: PracticeActivity) -> PracticeActivityOut:
@@ -204,10 +204,10 @@ async def get_practice_activity_detail(
         result = await session.execute(select(PracticeActivity).where(PracticeActivity.id == activity_id))
         activity = result.scalar_one_or_none()
         if activity is None or not activity.is_active:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hoat dong khong ton tai")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hoạt động không tồn tại")
         access = await get_practice_access(session, user_id=current_user.id, language_code=activity.language_code)
         if not can_access_practice(activity, access):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban can mo goi hoc phu hop de on luyen")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn cần mở gói học phù hợp để ôn luyện")
         return to_activity_out(activity)
 
 
@@ -221,10 +221,10 @@ async def submit_practice_activity(
         result = await session.execute(select(PracticeActivity).where(PracticeActivity.id == activity_id))
         activity = result.scalar_one_or_none()
         if activity is None or not activity.is_active:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hoat dong khong ton tai")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hoạt động không tồn tại")
         access = await get_practice_access(session, user_id=current_user.id, language_code=activity.language_code)
         if not can_access_practice(activity, access):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban can mo goi hoc phu hop de on luyen")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn cần mở gói học phù hợp để ôn luyện")
 
         is_correct, score_percent, feedback, expected_answer = evaluate_activity(activity, payload.answers)
 
