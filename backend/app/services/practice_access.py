@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.package import Package, UserEntitlement
 from app.models.practice import PracticeActivity
+from app.services.entitlement import build_active_entitlement_filters
 
 
 PRACTICE_SKILL_FALLBACK = {
@@ -48,9 +49,9 @@ async def get_practice_access(
         .join(UserEntitlement, UserEntitlement.package_id == Package.id)
         .where(
             UserEntitlement.user_id == user_id,
-            UserEntitlement.status == "active",
             Package.language_code == language_code,
             Package.is_active.is_(True),
+            *build_active_entitlement_filters(),
         )
     )
     packages = result.scalars().all()
@@ -63,7 +64,7 @@ async def get_practice_access(
 
 def can_access_practice(activity: PracticeActivity, access: PracticeAccess) -> bool:
     if activity.is_free:
-        return access.has_any_package
+        return True
 
     payload = activity.payload or {}
     required_packages = payload.get("package_codes")

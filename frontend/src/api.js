@@ -142,6 +142,10 @@ export function registerTournament(token, tournamentId) {
   return request(`/v1/tournaments/${tournamentId}/register`, { method: "POST", token });
 }
 
+export function startTournamentRoom(token, tournamentId) {
+  return request(`/v1/tournaments/${tournamentId}/start-room`, { method: "POST", token });
+}
+
 export function submitTournament(token, tournamentId, answers) {
   return request(`/v1/tournaments/${tournamentId}/submit`, {
     method: "POST",
@@ -196,6 +200,10 @@ export function logout(token) {
 
 export function getMe(token) {
   return request("/v1/me", { token });
+}
+
+export function getSupportAdminProfile() {
+  return request("/v1/support/admin-profile");
 }
 
 export function updateProfile(token, payload) {
@@ -315,17 +323,37 @@ export function getLeaderboard(languageCode = "") {
   return request(`/v1/leaderboard${query}`);
 }
 
-export function getCommunityPosts(languageCode = "") {
+export function getCommunityPosts(languageCode = "", token = "") {
   const query = languageCode ? `?language_code=${encodeURIComponent(languageCode)}` : "";
-  return request(`/v1/community/posts${query}`);
+  return request(`/v1/community/posts${query}`, { token });
 }
 
 export function createCommunityPost(token, payload) {
   return request("/v1/community/posts", { method: "POST", token, body: payload });
 }
 
+export function updateCommunityPost(token, postId, payload) {
+  return request(`/v1/community/posts/${postId}`, { method: "PATCH", token, body: payload });
+}
+
+export function deleteCommunityPost(token, postId) {
+  return request(`/v1/community/posts/${postId}`, { method: "DELETE", token });
+}
+
 export function createCommunityComment(token, postId, payload) {
   return request(`/v1/community/posts/${postId}/comments`, { method: "POST", token, body: payload });
+}
+
+export function reactCommunityPost(token, postId, reactionType) {
+  return request(`/v1/community/posts/${postId}/reactions`, {
+    method: "POST",
+    token,
+    body: { reaction_type: reactionType },
+  });
+}
+
+export function shareCommunityPost(token, postId) {
+  return request(`/v1/community/posts/${postId}/share`, { method: "POST", token });
 }
 
 export function reportCommunityPost(token, postId, payload) {
@@ -334,6 +362,10 @@ export function reportCommunityPost(token, postId, payload) {
 
 export function getFriends(token) {
   return request("/v1/community/friends", { token });
+}
+
+export function searchCommunityUsers(token, query) {
+  return request(`/v1/community/users/search?query=${encodeURIComponent(query)}`, { token });
 }
 
 export function addFriend(token, friendUserId) {
@@ -358,6 +390,22 @@ export function getGroupRoomMessages(token, roomId) {
 
 export function sendGroupRoomMessage(token, roomId, payload) {
   return request(`/v1/community/groups/${roomId}/messages`, { method: "POST", token, body: payload });
+}
+
+export function getGlobalChatMessages(token) {
+  return request("/v1/community/global-chat/messages", { token });
+}
+
+export function sendGlobalChatMessage(token, payload) {
+  return request("/v1/community/global-chat/messages", { method: "POST", token, body: payload });
+}
+
+export function getDirectMessages(token, friendUserId) {
+  return request(`/v1/community/direct-messages/${friendUserId}`, { token });
+}
+
+export function sendDirectMessage(token, friendUserId, payload) {
+  return request(`/v1/community/direct-messages/${friendUserId}`, { method: "POST", token, body: payload });
 }
 
 export function getAdminDashboard(token) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ADMIN_TEMPLATES } from "../adminTemplates";
+import { ADMIN_TEMPLATES, buildTemplatePayload } from "../adminTemplates";
 
 const ADMIN_AREAS = [
   { key: "dashboard", label: "Bảng điều khiển", hint: "Tổng quan hệ thống" },
@@ -93,7 +93,7 @@ function parseFieldValue(field, value) {
 function getRecordTitle(item, tab) {
   if (tab === "languages") return item.name ?? item.code ?? "Ngôn ngữ";
   if (tab === "vocabulary") return item.word ?? "Học liệu";
-  if (tab === "packages") return item.name ?? item.code ?? "Gói mua";
+  if (tab === "packages") return item.name ?? item.code ?? "Gói học";
   return item.title ?? item.name ?? item.code ?? `#${item.id}`;
 }
 
@@ -198,11 +198,12 @@ export default function AdminSection({
   const [jsonDrafts, setJsonDrafts] = useState({});
   const [jsonError, setJsonError] = useState("");
   const [packageCourseDrafts, setPackageCourseDrafts] = useState({});
+  const [packageFlowTab, setPackageFlowTab] = useState("free");
   const [manualEntitlement, setManualEntitlement] = useState({ user_id: "", package_id: "" });
   const [notificationForm, setNotificationForm] = useState({
     title: "Thông báo hệ thống",
     content: "",
-    notificationType: "gift",
+    notificationType: "reward",
     targetType: "user",
     targetValue: "",
   });
@@ -258,10 +259,22 @@ export default function AdminSection({
     setSettingDrafts(drafts);
   }, [adminWorkspace.settings]);
 
+  useEffect(() => {
+    if (adminTab !== "packages") return;
+    if (formPayload.is_free === true) setPackageFlowTab("free");
+    if (formPayload.is_free === false) setPackageFlowTab("paid");
+  }, [adminTab, formPayload.is_free]);
+
   const selectedUser = useMemo(
     () => (adminWorkspace.users ?? adminUsers ?? []).find((item) => item.id === adminSelectedUserId),
     [adminWorkspace.users, adminUsers, adminSelectedUserId],
   );
+  const workspacePackages = adminWorkspace.packages ?? [];
+  const workspaceCourses = adminWorkspace.courses ?? [];
+  const freePackages = workspacePackages.filter((item) => item.is_free);
+  const paidPackages = workspacePackages.filter((item) => !item.is_free);
+  const freeCourses = workspaceCourses.filter((item) => item.is_free);
+  const paidCourses = workspaceCourses.filter((item) => !item.is_free);
 
   function chooseArea(areaKey) {
     setAdminArea(areaKey);
@@ -308,6 +321,126 @@ export default function AdminSection({
     });
   }
 
+  function setPackageFlowPreset(isFree) {
+    const basePayload = buildTemplatePayload("packages");
+    const languageCode = formPayload.language_code || basePayload.language_code || "en";
+    const nextPayload = {
+      ...basePayload,
+      language_code: languageCode,
+      code: isFree ? `${languageCode}-free` : `${languageCode}-premium`,
+      name: isFree ? `Gói free ${languageCode.toUpperCase()}` : `Gói mua ${languageCode.toUpperCase()}`,
+      description: isFree
+        ? "Gói free dùng để mở luồng học cơ bản, không đi qua thanh toán."
+        : "Gói mua dùng cho luồng thanh toán và mở nội dung nâng cao.",
+      price_vnd: isFree ? 0 : 199000,
+      duration_days: isFree ? null : 90,
+      is_free: isFree,
+      is_active: true,
+    };
+    setPackageFlowTab(isFree ? "free" : "paid");
+    setJsonError("");
+    setAdminJson(JSON.stringify(nextPayload, null, 2));
+  }
+
+  function getDraftCourseIds(packageId) {
+    return parseIdList(packageCourseDrafts[packageId] ?? "");
+  }
+
+  function setDraftCourseIds(packageId, ids) {
+    setPackageCourseDrafts((current) => ({
+      ...current,
+      [packageId]: ids.join(", "),
+    }));
+  }
+
+  function togglePackageCourseDraft(packageId, courseId, checked) {
+    const currentIds = new Set(getDraftCourseIds(packageId));
+    if (checked) currentIds.add(courseId);
+    else currentIds.delete(courseId);
+    setDraftCourseIds(packageId, [...currentIds].sort((a, b) => a - b));
+  }
+
+  function getAvailablePackageCourses(item) {
+    return workspaceCourses.filter(
+      (course) =>
+        Boolean(course.is_free) === Boolean(item.is_free) &&
+        (!item.language_code || course.language_code === item.language_code),
+    );
+  }
+
+  function getPackageFlowConfig(flow) {
+    if (flow === "paid") {
+      return {
+        key: "paid",
+        eyebrow: "Luồng mua",
+        title: "Setup gói mua",
+        copy: "Luồng này dùng cho giá bán, thời hạn và khóa học nâng cao. Admin sẽ thao tác riêng với thanh toán và quyền học.",
+        courseHint: paidCourses,
+        empty: "Chưa có gói mua.",
+        pickerLabel: "Khóa học mua được mở",
+        saveLabel: "Lưu luồng mua",
+        emptyCourseCopy: "Chưa có khóa học mua cùng ngôn ngữ với gói này.",
+      };
+    }
+
+    return {
+      key: "free",
+      eyebrow: "Luồng free",
+      title: "Cập nhật gói free",
+      copy: "Luồng này chỉ dùng để cập nhật gói free và mở các khóa học free. Tách riêng để admin không nhầm với setup gói mua.",
+      courseHint: freeCourses,
+      empty: "Chưa có gói free.",
+      pickerLabel: "Khóa free được mở",
+      saveLabel: "Lưu luồng free",
+      emptyCourseCopy: "Chưa có khóa học free cùng ngôn ngữ với gói này.",
+    };
+  }
+
+  function renderPackageCollectionList(items, config) {
+    if (config.key && config.key !== packageFlowTab) return null;
+
+    return (
+      <section className="admin-package-flow-block">
+        <div className="admin-content-head">
+          <div>
+            <p className="eyebrow">{config.eyebrow}</p>
+            <h3>{config.title}</h3>
+          </div>
+          <span>{formatCount(items.length)}</span>
+        </div>
+        {config.courseHint.length ? (
+          <div className="admin-record-chips">
+            {config.courseHint.map((item) => (
+              <span className="admin-chip" key={`${config.title}-${item.id}`}>
+                {`#${item.id} ${item.title}`}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {items.length ? (
+          <div className="admin-record-grid">
+            {items.slice(0, 20).map((item) => (
+              <article className="admin-record-card" key={item.id ?? item.code}>
+                <div className="admin-record-card-head">
+                  <h4>{getRecordTitle(item, "packages")}</h4>
+                  <div className="admin-record-actions">
+                    <button className="ghost-button mini-button" onClick={() => onEditItem(item)} type="button">Sửa</button>
+                    <button className="ghost-button mini-button" onClick={() => onDeleteItem(item)} type="button">Xóa</button>
+                  </div>
+                </div>
+                <div className="admin-record-chips">
+                  {getRecordChips(item, "packages").map((chip) => <span className="admin-chip" key={`${item.id}-${chip}`}>{chip}</span>)}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-copy">{config.empty}</p>
+        )}
+      </section>
+    );
+  }
+
   async function submitQuestionBank(event) {
     event.preventDefault();
     const payload = {
@@ -348,6 +481,8 @@ export default function AdminSection({
 
   function renderCollectionEditor() {
     if (!collections.length) return null;
+    const activePackageConfig = getPackageFlowConfig(packageFlowTab);
+    const activePackageItems = packageFlowTab === "free" ? freePackages : paidPackages;
 
     return (
       <>
@@ -370,12 +505,41 @@ export default function AdminSection({
             <div className="admin-form-head">
               <p className="eyebrow">{adminEditingItem ? "Chỉnh sửa" : "Tạo mới"}</p>
               <h3>{template?.label ?? adminTab}</h3>
+              {adminTab === "packages" ? (
+                <div className="admin-record-actions">
+                  <button className="ghost-button mini-button" onClick={() => setPackageFlowPreset(true)} type="button">
+                    Mẫu gói free
+                  </button>
+                  <button className="ghost-button mini-button" onClick={() => setPackageFlowPreset(false)} type="button">
+                    Mẫu gói mua
+                  </button>
+                </div>
+              ) : null}
               {adminEditingItem ? (
                 <button className="ghost-button mini-button" onClick={onCancelEdit} type="button">
                   Hủy
                 </button>
               ) : null}
             </div>
+
+            {adminTab === "packages" ? (
+              <div className="admin-subtabs">
+                <button
+                  className={packageFlowTab === "free" ? "admin-subtab admin-subtab-active" : "admin-subtab"}
+                  onClick={() => setPackageFlowTab("free")}
+                  type="button"
+                >
+                  Gói free
+                </button>
+                <button
+                  className={packageFlowTab === "paid" ? "admin-subtab admin-subtab-active" : "admin-subtab"}
+                  onClick={() => setPackageFlowTab("paid")}
+                  type="button"
+                >
+                  Gói mua
+                </button>
+              </div>
+            ) : null}
 
             <div className="admin-form-grid">
               {template?.fields.map((field) => (
@@ -421,7 +585,26 @@ export default function AdminSection({
               </div>
               <span>{formatCount(adminItems.length)}</span>
             </div>
-            {adminItems.length > 0 ? (
+            {adminTab === "packages" ? (
+              <div className="admin-panel-stack">
+                {renderPackageCollectionList(freePackages, {
+                  key: "free",
+                  eyebrow: "Luồng free",
+                  title: "Cập nhật gói free",
+                  copy: "Nhóm này chỉ dùng để duy trì gói miễn phí và khóa học free đi kèm.",
+                  courseHint: freeCourses,
+                  empty: "Chưa có gói free.",
+                })}
+                {renderPackageCollectionList(paidPackages, {
+                  key: "paid",
+                  eyebrow: "Luồng mua",
+                  title: "Setup gói mua",
+                  copy: "Nhóm này dành cho gói trả phí, giá bán, thời hạn và course nâng cao.",
+                  courseHint: paidCourses,
+                  empty: "Chưa có gói mua.",
+                })}
+              </div>
+            ) : adminItems.length > 0 ? (
               <div className="admin-record-grid">
                 {adminItems.slice(0, 30).map((item) => (
                   <article className="admin-record-card" key={item.id ?? item.code}>
@@ -832,43 +1015,119 @@ export default function AdminSection({
 
   function renderPaymentsExtra() {
     if (adminArea !== "payments") return null;
+    const activePackageConfig = getPackageFlowConfig(packageFlowTab);
+    const activePackages = packageFlowTab === "free" ? freePackages : paidPackages;
+
     return (
-      <div className="admin-two-column">
-        <div className="admin-content-panel">
-          <div className="admin-content-head"><div><p className="eyebrow">Gắn khóa học</p><h3>Gói mở khóa học nào</h3></div></div>
-          {(adminWorkspace.packages ?? []).map((item) => (
-            <article className="admin-record-card" key={item.id}>
-              <h4>{item.name}</h4>
-              <small>{item.is_free ? "Gói miễn phí" : formatMoney(item.price_vnd)} · {item.duration_days || "không giới hạn"} ngày</small>
-              <label className="field">
-                <span>ID khóa học được mở</span>
-                <input onChange={(event) => setPackageCourseDrafts((current) => ({ ...current, [item.id]: event.target.value }))} value={packageCourseDrafts[item.id] ?? ""} />
-              </label>
-              <button className="ghost-button mini-button" onClick={() => onSavePackageCourses(item.id, (packageCourseDrafts[item.id] || "").split(",").map((value) => value.trim()).filter(Boolean).map(Number))} type="button">Lưu khóa học</button>
-            </article>
-          ))}
-        </div>
-        <div className="admin-content-panel">
-          <div className="admin-content-head"><div><p className="eyebrow">Thanh toán</p><h3>Giao dịch và quyền học</h3></div></div>
-          <div className="admin-inline-form">
-            <input placeholder="User ID" value={manualEntitlement.user_id} onChange={(event) => setManualEntitlement((current) => ({ ...current, user_id: event.target.value }))} />
-            <input placeholder="Package ID" value={manualEntitlement.package_id} onChange={(event) => setManualEntitlement((current) => ({ ...current, package_id: event.target.value }))} />
-            <button className="ghost-button mini-button" onClick={() => onCreateEntitlement(manualEntitlement)} type="button">Kích hoạt thủ công</button>
-          </div>
-          {(adminWorkspace.transactions ?? []).slice(0, 10).map((item) => (
-            <article className="admin-record-card" key={item.id}>
-              <h4>{item.order_id}</h4>
-              <small>User {item.user_id} · Gói {item.package_id} · {formatMoney(item.amount_vnd)} · {item.status}</small>
-              <div className="admin-record-actions">
-                <button className="ghost-button mini-button" onClick={() => onConfirmPayment(item.id)} type="button">Xác nhận</button>
-                <button className="ghost-button mini-button" onClick={() => onCancelPayment(item.id)} type="button">Hủy</button>
-                <button className="ghost-button mini-button" onClick={() => onRefundPayment(item.id)} type="button">Hoàn tiền</button>
+      <div className="admin-panel-stack">
+        <div className="admin-two-column">
+          <div className="admin-content-panel">
+            <div className="admin-content-head">
+              <div>
+                <p className="eyebrow">{activePackageConfig.eyebrow}</p>
+                <h3>{activePackageConfig.title}</h3>
               </div>
-            </article>
-          ))}
-          {(adminWorkspace.entitlements ?? []).slice(0, 8).map((item) => (
-            <p className="admin-list-button" key={item.id}>Quyền #{item.id} · user {item.user_id} · {item.status}<button className="ghost-button mini-button" onClick={() => onExtendEntitlement(item.id, 30)} type="button">Gia hạn 30 ngày</button></p>
-          ))}
+              <span>{formatCount(activePackages.length)}</span>
+            </div>
+
+            <div className="admin-subtabs">
+              <button
+                className={packageFlowTab === "free" ? "admin-subtab admin-subtab-active" : "admin-subtab"}
+                onClick={() => setPackageFlowTab("free")}
+                type="button"
+              >
+                Gói free
+              </button>
+              <button
+                className={packageFlowTab === "paid" ? "admin-subtab admin-subtab-active" : "admin-subtab"}
+                onClick={() => setPackageFlowTab("paid")}
+                type="button"
+              >
+                Gói mua
+              </button>
+            </div>
+
+            {activePackages.length ? (
+              <div className="admin-panel-stack">
+                {activePackages.map((item) => {
+                  const availableCourses = getAvailablePackageCourses(item);
+                  const selectedIds = getDraftCourseIds(item.id);
+
+                  return (
+                    <article className="admin-record-card" key={item.id}>
+                      <div className="admin-record-card-head">
+                        <div>
+                          <h4>{item.name}</h4>
+                          <small>
+                            {item.is_free ? "Gói free" : formatMoney(item.price_vnd)} · {item.duration_days || "không giới hạn"} ngày · {item.language_code || "all"}
+                          </small>
+                        </div>
+                        <span className="admin-status">{selectedIds.length} khoa</span>
+                      </div>
+
+                      <div className="field">
+                        <span>{activePackageConfig.pickerLabel}</span>
+                        {availableCourses.length ? (
+                          <div className="admin-package-course-picker">
+                            {availableCourses.map((course) => (
+                              <label className="admin-package-course-option" key={`${item.id}-${course.id}`}>
+                                <input
+                                  checked={selectedIds.includes(course.id)}
+                                  onChange={(event) => togglePackageCourseDraft(item.id, course.id, event.target.checked)}
+                                  type="checkbox"
+                                />
+                                <div className="admin-package-course-meta">
+                                  <strong>{course.title}</strong>
+                                  <small>{course.language_code} · #{course.id}</small>
+                                </div>
+                                <span className="admin-chip">{course.is_free ? "Free" : "Paid"}</span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="empty-copy">{activePackageConfig.emptyCourseCopy}</p>
+                        )}
+                      </div>
+
+                      <div className="admin-package-course-actions">
+                        <span className="admin-package-course-draft">
+                          IDs: {selectedIds.length ? selectedIds.join(", ") : "chua chon"}
+                        </span>
+                        <button className="ghost-button mini-button" onClick={() => onSavePackageCourses(item.id, selectedIds)} type="button">
+                          {activePackageConfig.saveLabel}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="empty-copy">{activePackageConfig.empty}</p>
+            )}
+          </div>
+
+          <div className="admin-content-panel">
+            <div className="admin-content-head"><div><p className="eyebrow">Thanh toan</p><h3>Giao dich va quyen hoc</h3></div></div>
+            <div className="admin-inline-form">
+              <input placeholder="User ID" value={manualEntitlement.user_id} onChange={(event) => setManualEntitlement((current) => ({ ...current, user_id: event.target.value }))} />
+              <input placeholder="Package ID" value={manualEntitlement.package_id} onChange={(event) => setManualEntitlement((current) => ({ ...current, package_id: event.target.value }))} />
+              <button className="ghost-button mini-button" onClick={() => onCreateEntitlement(manualEntitlement)} type="button">Kich hoat thu cong</button>
+            </div>
+            {(adminWorkspace.transactions ?? []).slice(0, 10).map((item) => (
+              <article className="admin-record-card" key={item.id}>
+                <h4>{item.order_id}</h4>
+                <small>User {item.user_id} · Gói {item.package_id} · {formatMoney(item.amount_vnd)} · {item.status}</small>
+                <div className="admin-record-actions">
+                  <button className="ghost-button mini-button" onClick={() => onConfirmPayment(item.id)} type="button">Xác nhận</button>
+                  <button className="ghost-button mini-button" onClick={() => onCancelPayment(item.id)} type="button">Hủy</button>
+                  <button className="ghost-button mini-button" onClick={() => onRefundPayment(item.id)} type="button">Hoàn tiền</button>
+                </div>
+              </article>
+            ))}
+            {(adminWorkspace.entitlements ?? []).slice(0, 8).map((item) => (
+              <p className="admin-list-button" key={item.id}>Quyền #{item.id} · user {item.user_id} · {item.status}<button className="ghost-button mini-button" onClick={() => onExtendEntitlement(item.id, 30)} type="button">Gia hạn 30 ngày</button></p>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -892,8 +1151,8 @@ export default function AdminSection({
               <span>Loại</span>
               <select onChange={(event) => setNotificationForm((current) => ({ ...current, notificationType: event.target.value }))} value={notificationForm.notificationType}>
                 <option value="admin">Tin nhắn</option>
-                <option value="gift">Quà</option>
-                <option value="badge">Huy hiệu</option>
+                <option value="reward">Quà</option>
+                <option value="achievement">Huy hiệu</option>
                 <option value="study_reminder">Nhắc học</option>
               </select>
             </label>
@@ -1049,9 +1308,9 @@ export default function AdminSection({
             <label className="field">
               <span>Loai gui</span>
               <select onChange={(event) => setNotificationForm((current) => ({ ...current, notificationType: event.target.value }))} value={notificationForm.notificationType}>
-                <option value="gift">Qua</option>
+                <option value="reward">Qua</option>
                 <option value="admin">Tin nhan</option>
-                <option value="badge">Huy hieu</option>
+                <option value="achievement">Huy hieu</option>
                 <option value="study_reminder">Nhac hoc</option>
               </select>
             </label>
@@ -1083,9 +1342,9 @@ export default function AdminSection({
             ) : null}
             {notificationForm.targetType === "language" ? (
               <label className="field">
-                <span>Ngon ngu</span>
+                <span>Ngôn ngữ</span>
                 <select onChange={(event) => setNotificationForm((current) => ({ ...current, targetValue: event.target.value }))} value={notificationForm.targetValue}>
-                  <option value="">Chon ngon ngu</option>
+                  <option value="">Chọn ngôn ngữ</option>
                   {(adminWorkspace.languages ?? []).map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -1096,7 +1355,7 @@ export default function AdminSection({
             ) : null}
 
             <button className="primary-button admin-hero-button" type="submit">
-              Gui
+              Gửi
             </button>
           </form>
           <button className="ghost-button mini-button" onClick={onSendBroadcast} type="button">
@@ -1112,15 +1371,15 @@ export default function AdminSection({
           </div>
           {(adminWorkspace.notifications ?? []).map((item) => (
             <p className="admin-list-button" key={item.id}>
-              {item.title} · {item.notification_type} · {item.public_user_id ? `User ${item.public_user_id}` : "Toan he thong"}
+              {item.title} · {item.notification_type} · {item.public_user_id ? `User ${item.public_user_id}` : "Toàn hệ thống"}
             </p>
           ))}
         </div>
         <div className="admin-content-panel">
           <div className="admin-content-head">
             <div>
-              <p className="eyebrow">Ho tro</p>
-              <h3>Ticket nguoi dung</h3>
+              <p className="eyebrow">Hỗ trợ</p>
+              <h3>Ticket người dùng</h3>
             </div>
           </div>
           {(adminWorkspace.tickets ?? []).map((item) => (
@@ -1131,7 +1390,7 @@ export default function AdminSection({
               </small>
               <p>{item.content}</p>
               <label className="field admin-wide-field">
-                <span>Nguoi phu trach</span>
+                <span>Người phụ trách</span>
                 <select
                   onChange={(event) =>
                     onUpdateTicketWorkflow(item.id, {
@@ -1141,7 +1400,7 @@ export default function AdminSection({
                   }
                   value={item.assigned_admin_id ?? ""}
                 >
-                  <option value="">Chua phan cong</option>
+                  <option value="">Chưa phân công</option>
                   {(adminWorkspace.admins ?? []).map((admin) => (
                     <option key={admin.id} value={admin.id}>
                       {admin.name}

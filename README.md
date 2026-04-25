@@ -123,6 +123,11 @@ copy .env.example .env
 uvicorn app.main:app --reload
 ```
 
+Lưu ý local backend:
+
+- `VMORA_REDIS_URL` nên để `redis://localhost:6380/0` nếu dùng `docker-compose.yml` của repo này.
+- `VMORA_ADMIN_BOOTSTRAP_EMAILS` chỉ nên chứa email được phép nhận quyền admin đầu tiên. Nếu để trống thì hệ thống sẽ không tự bootstrap admin.
+
 Backend:
 
 ```text
@@ -168,6 +173,8 @@ backend\.venv\Scripts\python.exe scripts\seed_exam_content.py --languages en zh
 
 - Backend dùng prefix env là `VMORA_`
 - `VMORA_DATABASE_AUTO_CREATE=true` phù hợp local
+- `VMORA_REDIS_URL=redis://localhost:6380/0` khớp với cổng Redis đang map trong `docker-compose.yml`
+- `VMORA_ADMIN_BOOTSTRAP_EMAILS` điều khiển email nào được phép bootstrap admin đầu tiên
 - `VMORA_MOMO_MOCK=true` đang dùng để test local
 - Các script seed hiện dùng `init_db()` để tự đảm bảo schema trước khi import
 - Không chạy nhiều script seed song song trên cùng DB

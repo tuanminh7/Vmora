@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     database_pool_recycle: int = 1800
     password_reset_mock: bool = True
     password_reset_otp_minutes: int = 10
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = "redis://localhost:6380/0"
     realtime_redis_enabled: bool = True
     realtime_redis_channel: str = "vmora:realtime"
     realtime_max_connections_per_instance: int = 6000
@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     momo_store_id: str = "VmoraStore"
     momo_redirect_url: str = "http://localhost:5173"
     momo_ipn_url: str = "http://localhost:8000/api/v1/payments/momo/ipn"
+    admin_bootstrap_emails: str = ""
     gemini_api_keys: str = ""
     gemini_key_cooldown_seconds: int = 300
 
@@ -61,6 +62,14 @@ class Settings(BaseSettings):
     @property
     def trusted_hosts(self) -> list[str]:
         return [item.strip() for item in self.allowed_hosts.split(",") if item.strip()]
+
+    @property
+    def admin_bootstrap_email_set(self) -> set[str]:
+        return {
+            item.strip().lower()
+            for item in self.admin_bootstrap_emails.split(",")
+            if item.strip()
+        }
 
     @property
     def gemini_api_key_pool(self) -> list[str]:

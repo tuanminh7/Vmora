@@ -5,6 +5,7 @@ import secrets
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.feature import (
     AdminGrant,
     GroupRoom,
@@ -28,6 +29,13 @@ async def ensure_admin_bootstrap(session: AsyncSession, user: User) -> bool:
     admin_count = count_result.scalar_one()
     if admin_count > 0:
         return await is_admin(session, user.id)
+
+    allowed_emails = settings.admin_bootstrap_email_set
+    if not allowed_emails:
+        return False
+
+    if user.email.strip().lower() not in allowed_emails:
+        return False
 
     session.add(AdminGrant(user_id=user.id))
     await session.flush()

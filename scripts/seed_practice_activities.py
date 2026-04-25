@@ -181,6 +181,26 @@ def build_activities(language_code: str, items: list[VocabularyEntry]) -> list[d
     random.shuffle(quiz_options)
     quiz_correct_option = next(option["id"] for option in quiz_options if option["text"] == short_text(quiz_word.meaning_en, 96))
 
+    daily_word = items[5]
+    daily_quiz_word = items[6]
+    premium_quiz_word = items[7]
+
+    daily_quiz_options = [
+        {"id": f"daily-{index}", "text": short_text(entry.meaning_en, 96)}
+        for index, entry in enumerate([daily_quiz_word, items[4], items[5], items[7]], start=1)
+    ]
+    random.shuffle(daily_quiz_options)
+    daily_quiz_correct_option = next(
+        option["id"] for option in daily_quiz_options if option["text"] == short_text(daily_quiz_word.meaning_en, 96)
+    )
+
+    premium_quiz_options = [
+        {"id": f"premium-{index}", "text": entry.word}
+        for index, entry in enumerate([premium_quiz_word, items[1], items[2], items[6]], start=1)
+    ]
+    random.shuffle(premium_quiz_options)
+    premium_quiz_correct_option = next(option["id"] for option in premium_quiz_options if option["text"] == premium_quiz_word.word)
+
     image_options = [{"id": f"image-{index}", "text": entry.word} for index, entry in enumerate(items[2:6], start=1)]
     random.shuffle(image_options)
     image_correct_option = next(option["id"] for option in image_options if option["text"] == image_word.word)
@@ -215,6 +235,7 @@ def build_activities(language_code: str, items: list[VocabularyEntry]) -> list[d
             "prompt": f"Xem mat truoc va mat sau cua tu {flashcard.word}.",
             "payload": {
                 "practice_skill": "vocabulary",
+                "topic": "Nen tang giao tiep",
                 "front_word": flashcard.word,
                 "reading": flashcard.reading,
                 "back_meaning": short_text(flashcard.meaning_en, 140),
@@ -231,6 +252,7 @@ def build_activities(language_code: str, items: list[VocabularyEntry]) -> list[d
             "prompt": f"Tu nao co nghia dung cho '{quiz_word.word}'?",
             "payload": {
                 "practice_skill": "vocabulary",
+                "topic": "Nen tang giao tiep",
                 "question_word": quiz_word.word,
                 "options": quiz_options,
                 "correct_option_id": quiz_correct_option,
@@ -246,11 +268,45 @@ def build_activities(language_code: str, items: list[VocabularyEntry]) -> list[d
             "prompt": "Ghep moi tu ben trai voi nghia dung ben phai.",
             "payload": {
                 "practice_skill": "vocabulary",
+                "topic": "Nen tang giao tiep",
                 "left_items": left_items,
                 "right_items": right_items,
                 "correct_pairs": correct_pairs,
             },
             "order_index": 3,
+            "is_free": True,
+        },
+        {
+            "code": "flashcard-daily",
+            "activity_type": "flashcard",
+            "title": "Flashcard sinh hoat",
+            "description": "On nhanh tu vung theo chu de sinh hoat hang ngay.",
+            "prompt": f"Xem mat truoc va mat sau cua tu {daily_word.word}.",
+            "payload": {
+                "practice_skill": "vocabulary",
+                "topic": "Sinh hoat hang ngay",
+                "front_word": daily_word.word,
+                "reading": daily_word.reading,
+                "back_meaning": short_text(daily_word.meaning_en, 140),
+                "example": short_text(daily_word.example, 140),
+            },
+            "order_index": 4,
+            "is_free": True,
+        },
+        {
+            "code": "quiz-daily-topic",
+            "activity_type": "quiz",
+            "title": "Trac nghiem chu de",
+            "description": "Chon nghia dung trong chu de sinh hoat hang ngay.",
+            "prompt": f"Tu nao co nghia dung cho '{daily_quiz_word.word}'?",
+            "payload": {
+                "practice_skill": "vocabulary",
+                "topic": "Sinh hoat hang ngay",
+                "question_word": daily_quiz_word.word,
+                "options": daily_quiz_options,
+                "correct_option_id": daily_quiz_correct_option,
+            },
+            "order_index": 5,
             "is_free": True,
         },
         {
@@ -264,7 +320,7 @@ def build_activities(language_code: str, items: list[VocabularyEntry]) -> list[d
                 "accepted_answers": [typing_word.word, typing_word.word.casefold()],
                 "display_answer": typing_word.word,
             },
-            "order_index": 4,
+            "order_index": 6,
             "is_free": True,
         },
         {
@@ -279,7 +335,7 @@ def build_activities(language_code: str, items: list[VocabularyEntry]) -> list[d
                 "accepted_answers": ["practice audio", "vmora practice audio"],
                 "display_answer": "practice audio",
             },
-            "order_index": 5,
+            "order_index": 7,
             "is_free": True,
         },
         {
@@ -295,7 +351,7 @@ def build_activities(language_code: str, items: list[VocabularyEntry]) -> list[d
                 "accepted_answers": [voice_word.word, voice_word.word.casefold()],
                 "display_answer": voice_word.word,
             },
-            "order_index": 6,
+            "order_index": 8,
             "is_free": True,
         },
         {
@@ -309,7 +365,7 @@ def build_activities(language_code: str, items: list[VocabularyEntry]) -> list[d
                 "options": grammar_options,
                 "correct_option_id": "grammar-a",
             },
-            "order_index": 7,
+            "order_index": 9,
             "is_free": True,
         },
         {
@@ -320,12 +376,30 @@ def build_activities(language_code: str, items: list[VocabularyEntry]) -> list[d
             "prompt": "Nhin hinh va chon tu dung.",
             "payload": {
                 "practice_skill": "vocabulary",
+                "topic": "Hinh anh mo rong",
                 **premium_payload,
                 "image_url": image_data_url(image_word.word, accent),
                 "options": image_options,
                 "correct_option_id": image_correct_option,
             },
-            "order_index": 8,
+            "order_index": 10,
+            "is_free": False,
+        },
+        {
+            "code": "premium-context-quiz",
+            "activity_type": "quiz",
+            "title": "Tu vung tinh huong",
+            "description": "Lam bai tu vung nang cao theo tinh huong thuc te.",
+            "prompt": f"Chon tu dung cho tinh huong voi '{premium_quiz_word.word}'.",
+            "payload": {
+                "practice_skill": "vocabulary",
+                "topic": "Tinh huong nang cao",
+                **premium_payload,
+                "question_word": premium_quiz_word.word,
+                "options": premium_quiz_options,
+                "correct_option_id": premium_quiz_correct_option,
+            },
+            "order_index": 11,
             "is_free": False,
         },
         {
@@ -340,7 +414,7 @@ def build_activities(language_code: str, items: list[VocabularyEntry]) -> list[d
                 "video_url": VIDEO_URL,
                 "note": "Sau nay co the thay bang video bai giang that.",
             },
-            "order_index": 9,
+            "order_index": 12,
             "is_free": False,
         },
         {
@@ -387,7 +461,7 @@ def build_activities(language_code: str, items: list[VocabularyEntry]) -> list[d
                     },
                 ]
             },
-            "order_index": 10,
+            "order_index": 13,
             "is_free": False,
         },
     ]

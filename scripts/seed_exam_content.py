@@ -16,7 +16,7 @@ from app.db.session import AsyncSessionLocal, init_db
 from app.models.feature import Exam, ExamQuestion
 from app.models.language import Language
 from app.models.vocabulary import VocabularyEntry
-
+# 
 
 def short_text(text: str | None, limit: int = 80) -> str:
     value = " ".join((text or "").split())

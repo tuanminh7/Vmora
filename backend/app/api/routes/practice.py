@@ -152,17 +152,19 @@ def evaluate_activity(activity: PracticeActivity, answers: Any) -> tuple[bool | 
 
 
 def to_activity_out(activity: PracticeActivity) -> PracticeActivityOut:
+    payload = activity.payload or {}
     return PracticeActivityOut(
         id=activity.id,
         language_code=activity.language_code,
         lesson_id=activity.lesson_id,
         code=activity.code,
+        topic=payload.get("topic"),
         practice_skill=resolve_practice_skill(activity),
         activity_type=activity.activity_type,
         title=activity.title,
         description=activity.description,
         prompt=activity.prompt,
-        payload=activity.payload or {},
+        payload=payload,
         order_index=activity.order_index,
         is_free=activity.is_free,
     )

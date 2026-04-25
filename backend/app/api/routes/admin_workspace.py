@@ -38,7 +38,12 @@ from app.models.roadmap import Roadmap, RoadmapStage
 from app.models.session_token import SessionToken
 from app.models.user import User
 from app.models.vocabulary import VocabularyEntry
-from app.services.entitlement import grant_entitlement
+from app.services.entitlement import (
+    build_active_entitlement_filters,
+    effective_entitlement_status,
+    grant_entitlement,
+    is_entitlement_active,
+)
 from app.services.realtime import broadcast_event, send_user_event
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"])
@@ -105,6 +110,13 @@ def parse_public_user_id(raw_value: object) -> int:
 
 def points_from_counts(*, completed_lessons: int, exam_attempts: int, tournament_attempts: int) -> int:
     return completed_lessons + exam_attempts * 10 + tournament_attempts * 10
+
+
+def get_active_entitlement_row(entitlement_rows: list[tuple[UserEntitlement, Package]]):
+    for entitlement, package in entitlement_rows:
+        if is_entitlement_active(entitlement):
+            return entitlement, package
+    return None
 
 
 async def notify_admin_clients(*, tab: str) -> None:
@@ -178,6 +190,7 @@ async def build_user_snapshot(session, user: User, admin_ids: set[int]) -> dict:
             select(SupportTicket).where(SupportTicket.user_id == user.id).order_by(SupportTicket.updated_at.desc()).limit(1)
         )
     ).scalar_one_or_none()
+    active_entitlement_row = get_active_entitlement_row(entitlement_rows)
 
     return {
         "id": user.id,
@@ -199,14 +212,8 @@ async def build_user_snapshot(session, user: User, admin_ids: set[int]) -> dict:
             exam_attempts=exam_attempts,
             tournament_attempts=tournament_attempts,
         ),
-        "active_package_name": next(
-            (package.name for entitlement, package in entitlement_rows if entitlement.status == "active"),
-            None,
-        ),
-        "active_package_expires_at": next(
-            (iso(entitlement.expires_at) for entitlement, _package in entitlement_rows if entitlement.status == "active"),
-            None,
-        ),
+        "active_package_name": active_entitlement_row[1].name if active_entitlement_row else None,
+        "active_package_expires_at": iso(active_entitlement_row[0].expires_at) if active_entitlement_row else None,
         "latest_ticket_status": latest_ticket.status if latest_ticket else None,
     }
 
@@ -339,7 +346,7 @@ async def get_admin_user_detail(user_id: int, _admin: User = Depends(get_admin_u
                     "id": entitlement.id,
                     "package_id": package.id,
                     "package_name": package.name,
-                    "status": entitlement.status,
+                    "status": effective_entitlement_status(entitlement),
                     "is_free": package.is_free,
                     "expires_at": iso(entitlement.expires_at),
                     "created_at": iso(entitlement.created_at),
@@ -1035,7 +1042,7 @@ async def set_payment_status(*, payment_id: int, admin: User, status_value: str)
                     select(UserEntitlement).where(
                         UserEntitlement.user_id == payment.user_id,
                         UserEntitlement.package_id == payment.package_id,
-                        UserEntitlement.status == "active",
+                        *build_active_entitlement_filters(),
                     )
                 )
             ).scalars().all()
@@ -1067,6 +1074,8 @@ async def create_manual_entitlement(payload: dict, admin: User = Depends(get_adm
         package = (await session.execute(select(Package).where(Package.id == int(package_id)))).scalar_one_or_none()
         if package is None:
             raise HTTPException(status_code=404, detail="Gói không tồn tại")
+        if not package.is_active:
+            raise HTTPException(status_code=400, detail="Goi hoc dang tam dung kich hoat")
         entitlement = await grant_entitlement(session, user_id=int(user_id), package=package)
         await record_admin_action(
             session,
@@ -1090,7 +1099,8 @@ async def extend_entitlement(entitlement_id: int, payload: dict, admin: User = D
         if entitlement is None:
             raise HTTPException(status_code=404, detail="Quyền học không tồn tại")
 
-        base_time = entitlement.expires_at or utc_now()
+        current_time = utc_now()
+        base_time = entitlement.expires_at if entitlement.expires_at and entitlement.expires_at > current_time else current_time
         entitlement.expires_at = base_time + timedelta(days=extend_days)
         entitlement.status = "active"
         await record_admin_action(

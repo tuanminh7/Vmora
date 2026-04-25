@@ -6,7 +6,7 @@ from app.db.session import AsyncSessionLocal
 from app.models.package import Package, UserEntitlement
 from app.models.user import User
 from app.schemas.payment import EntitlementOut, PackageOut
-from app.services.entitlement import grant_entitlement
+from app.services.entitlement import effective_entitlement_status, grant_entitlement
 from app.services.realtime import send_user_event
 
 router = APIRouter(prefix="/v1", tags=["packages"])
@@ -55,7 +55,7 @@ async def get_my_entitlements(current_user: User = Depends(get_current_user)):
                 package_name=package.name,
                 language_code=package.language_code,
                 is_free=package.is_free,
-                status=entitlement.status,
+                status=effective_entitlement_status(entitlement),
                 expires_at=entitlement.expires_at.isoformat() if entitlement.expires_at else None,
             )
             for entitlement, package in rows
@@ -72,6 +72,8 @@ async def activate_free_package(
         package = package_result.scalar_one_or_none()
         if package is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Gói không tồn tại")
+        if not package.is_active:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Goi hoc dang tam dung kich hoat")
         if not package.is_free:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Đây không phải gói free")
 
@@ -85,7 +87,7 @@ async def activate_free_package(
             package_name=package.name,
             language_code=package.language_code,
             is_free=package.is_free,
-            status=entitlement.status,
+            status=effective_entitlement_status(entitlement),
             expires_at=entitlement.expires_at.isoformat() if entitlement.expires_at else None,
         )
         await send_user_event(

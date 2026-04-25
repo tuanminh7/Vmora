@@ -8,6 +8,7 @@ class PracticeActivityOut(BaseModel):
     language_code: str
     lesson_id: int | None
     code: str
+    topic: str | None = None
     practice_skill: str
     activity_type: str
     title: str

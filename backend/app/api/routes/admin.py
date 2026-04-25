@@ -524,7 +524,23 @@ async def admin_list_vocabulary(_admin: User = Depends(get_admin_user)):
     async with AsyncSessionLocal() as session:
         items = (await session.execute(select(VocabularyEntry).order_by(VocabularyEntry.id.desc()).limit(200))).scalars().all()
         return [
-            model_to_dict(item, ["id", "language_code", "word", "reading", "part_of_speech", "meaning_en", "meaning_vi", "source_name", "source_url", "is_active"])
+            model_to_dict(
+                item,
+                [
+                    "id",
+                    "language_code",
+                    "word",
+                    "reading",
+                    "part_of_speech",
+                    "meaning_en",
+                    "meaning_vi",
+                    "example",
+                    "example_meaning_vi",
+                    "source_name",
+                    "source_url",
+                    "is_active",
+                ],
+            )
             for item in items
         ]
 
@@ -538,7 +554,23 @@ async def admin_create_vocabulary(payload: VocabularyAdminInput, _admin: User = 
         await session.refresh(item)
         await notify_admin_clients(tab="vocabulary")
         await notify_content_clients(tab="vocabulary", language_code=item.language_code)
-        return model_to_dict(item, ["id", "language_code", "word", "reading", "part_of_speech", "meaning_en", "meaning_vi", "source_name", "source_url", "is_active"])
+        return model_to_dict(
+            item,
+            [
+                "id",
+                "language_code",
+                "word",
+                "reading",
+                "part_of_speech",
+                "meaning_en",
+                "meaning_vi",
+                "example",
+                "example_meaning_vi",
+                "source_name",
+                "source_url",
+                "is_active",
+            ],
+        )
 
 
 @router.patch("/vocabulary/{entry_id}")
@@ -552,7 +584,23 @@ async def admin_update_vocabulary(entry_id: int, payload: VocabularyAdminInput, 
         await session.commit()
         await notify_admin_clients(tab="vocabulary")
         await notify_content_clients(tab="vocabulary", language_code=item.language_code)
-        return model_to_dict(item, ["id", "language_code", "word", "reading", "part_of_speech", "meaning_en", "meaning_vi", "source_name", "source_url", "is_active"])
+        return model_to_dict(
+            item,
+            [
+                "id",
+                "language_code",
+                "word",
+                "reading",
+                "part_of_speech",
+                "meaning_en",
+                "meaning_vi",
+                "example",
+                "example_meaning_vi",
+                "source_name",
+                "source_url",
+                "is_active",
+            ],
+        )
 
 
 @router.delete("/vocabulary/{entry_id}", response_model=SimpleStatusOut)

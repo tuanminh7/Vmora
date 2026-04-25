@@ -1,11 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from app.api.deps.auth import get_current_user, get_optional_current_user
 from app.db.session import AsyncSessionLocal
@@ -14,7 +14,10 @@ from app.models.feature import (
     AdminGrant,
     CommunityComment,
     CommunityPost,
+    CommunityPostReaction,
+    CommunityPostShare,
     CommunityReport,
+    DirectMessage,
     Exam,
     ExamAttempt,
     ExamQuestion,
@@ -44,7 +47,14 @@ from app.schemas.feature import (
     CommunityCommentOut,
     CommunityPostInput,
     CommunityPostOut,
+    CommunityPostUpdateInput,
+    CommunityReactionInput,
+    CommunityReactionSummaryOut,
     CommunityReportInput,
+    CommunityShareSummaryOut,
+    CommunityUserOut,
+    DirectMessageInput,
+    DirectMessageOut,
     ExamOut,
     ExamQuestionOut,
     ExamSubmitInput,
@@ -73,6 +83,7 @@ from app.schemas.feature import (
     TournamentOut,
     TournamentQuestionOut,
     TournamentRegisterOut,
+    TournamentRoomStartOut,
     TournamentSubmitInput,
     TournamentSubmitOut,
     UserStatsOut,
@@ -92,6 +103,7 @@ from app.services.features import (
     get_or_create_pet,
     get_or_create_streak,
     hash_group_passcode,
+    is_admin,
     store_pet_exchange,
 )
 from app.services.realtime import broadcast_event, send_user_event
@@ -261,18 +273,37 @@ def parse_reminder_datetime(value: str) -> datetime:
     try:
         parsed = datetime.fromisoformat(value)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail="Thời gian nhắc nhở không hợp lệ") from exc
+        raise HTTPException(status_code=422, detail="Thá»i gian nháº¯c nhá»Ÿ khÃ´ng há»£p lá»‡") from exc
 
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)
     return parsed.astimezone(UTC)
 
 
-def group_room_to_out(item: GroupRoom, *, current_user_id: int, member_count: int) -> GroupRoomOut:
+def build_public_user_id(user_id: int) -> str:
+    return str(user_id).zfill(5)
+
+
+def community_user_to_out(user: User) -> CommunityUserOut:
+    return CommunityUserOut(
+        id=user.id,
+        public_user_id=build_public_user_id(user.id),
+        email=user.email,
+        full_name=user.full_name,
+        avatar_url=user.avatar_url,
+        learning_language_code=user.learning_language_code,
+    )
+
+
+def group_room_to_out(item: GroupRoom, *, owner: User, current_user_id: int, member_count: int) -> GroupRoomOut:
     return GroupRoomOut(
         id=item.id,
         name=item.name,
         room_code=item.room_code,
+        owner_user_id=item.owner_user_id,
+        owner_public_user_id=build_public_user_id(item.owner_user_id),
+        owner_name=owner.full_name or owner.email,
+        owner_avatar_url=owner.avatar_url,
         is_private=item.is_private,
         is_owner=item.owner_user_id == current_user_id,
         member_count=member_count,
@@ -280,14 +311,152 @@ def group_room_to_out(item: GroupRoom, *, current_user_id: int, member_count: in
     )
 
 
-def group_message_to_out(item: GroupRoomMessage, *, user_name: str | None) -> GroupRoomMessageOut:
+def group_message_to_out(item: GroupRoomMessage, *, user: User) -> GroupRoomMessageOut:
     return GroupRoomMessageOut(
         id=item.id,
         room_id=item.room_id,
         user_id=item.user_id,
-        user_name=user_name,
+        user_public_user_id=build_public_user_id(item.user_id),
+        user_name=user.full_name or user.email,
+        user_avatar_url=user.avatar_url,
+        content=item.content,
+        image_url=item.image_url,
+        audio_url=item.audio_url,
+        audio_name=item.audio_name,
+        created_at=item.created_at.isoformat(),
+    )
+
+
+GLOBAL_CHAT_ROOM_CODE = "GLOBAL"
+GLOBAL_CHAT_ROOM_NAME = "Chat tổng"
+GLOBAL_CHAT_PASSCODE = "vmora-global-chat"
+
+
+async def get_or_create_global_chat_room(session: Any, *, current_user: User) -> GroupRoom:
+    result = await session.execute(select(GroupRoom).where(GroupRoom.room_code == GLOBAL_CHAT_ROOM_CODE))
+    room = result.scalar_one_or_none()
+    if room is not None:
+        return room
+
+    room = GroupRoom(
+        owner_user_id=current_user.id,
+        name=GLOBAL_CHAT_ROOM_NAME,
+        room_code=GLOBAL_CHAT_ROOM_CODE,
+        passcode_hash=hash_group_passcode(GLOBAL_CHAT_PASSCODE),
+        is_private=False,
+    )
+    session.add(room)
+    await session.flush()
+    return room
+
+
+def community_comment_to_out(item: CommunityComment, *, user: User) -> CommunityCommentOut:
+    return CommunityCommentOut(
+        id=item.id,
+        post_id=item.post_id,
+        user_id=item.user_id,
+        user_public_user_id=build_public_user_id(item.user_id),
+        user_name=user.full_name or user.email,
+        user_avatar_url=user.avatar_url,
         content=item.content,
         created_at=item.created_at.isoformat(),
+    )
+
+
+def direct_message_to_out(item: DirectMessage, *, sender: User, recipient: User) -> DirectMessageOut:
+    return DirectMessageOut(
+        id=item.id,
+        sender_user_id=item.sender_user_id,
+        sender_public_user_id=build_public_user_id(item.sender_user_id),
+        sender_name=sender.full_name or sender.email,
+        sender_avatar_url=sender.avatar_url,
+        recipient_user_id=item.recipient_user_id,
+        recipient_public_user_id=build_public_user_id(item.recipient_user_id),
+        recipient_name=recipient.full_name or recipient.email,
+        recipient_avatar_url=recipient.avatar_url,
+        content=item.content,
+        created_at=item.created_at.isoformat(),
+    )
+
+
+def summarize_reactions(rows: list[tuple[int, str, int]]) -> dict[int, dict[str, int]]:
+    summary: dict[int, dict[str, int]] = defaultdict(dict)
+    for post_id, reaction_type, count in rows:
+        summary[post_id][reaction_type] = count
+    return summary
+
+
+async def ensure_friend_link(session: Any, *, user_id: int, friend_user_id: int) -> User:
+    friend_result = await session.execute(select(User).where(User.id == friend_user_id))
+    friend = friend_result.scalar_one_or_none()
+    if friend is None:
+        raise HTTPException(status_code=404, detail="Nguoi dung khong ton tai")
+
+    link_result = await session.execute(
+        select(FriendLink).where(
+            FriendLink.user_id == user_id,
+            FriendLink.friend_user_id == friend_user_id,
+            FriendLink.status == "accepted",
+        )
+    )
+    if link_result.scalar_one_or_none() is None:
+        raise HTTPException(status_code=403, detail="Ban can ket ban truoc khi nhan tin")
+
+    return friend
+
+
+async def build_community_post_out(
+    session: Any,
+    *,
+    post: CommunityPost,
+    user: User,
+    current_user_id: int | None = None,
+) -> CommunityPostOut:
+    comment_result = await session.execute(
+        select(CommunityComment, User)
+        .join(User, User.id == CommunityComment.user_id)
+        .where(CommunityComment.post_id == post.id)
+        .order_by(CommunityComment.created_at.asc())
+    )
+    comments = [community_comment_to_out(comment, user=comment_user) for comment, comment_user in comment_result.all()]
+
+    reaction_result = await session.execute(
+        select(CommunityPostReaction.reaction_type, func.count(CommunityPostReaction.id))
+        .where(CommunityPostReaction.post_id == post.id)
+        .group_by(CommunityPostReaction.reaction_type)
+    )
+    reactions = {reaction_type: count for reaction_type, count in reaction_result.all()}
+
+    my_reaction = None
+    if current_user_id:
+        my_reaction_result = await session.execute(
+            select(CommunityPostReaction.reaction_type).where(
+                CommunityPostReaction.post_id == post.id,
+                CommunityPostReaction.user_id == current_user_id,
+            )
+        )
+        my_reaction = my_reaction_result.scalar_one_or_none()
+
+    share_count_result = await session.execute(
+        select(func.count(CommunityPostShare.id)).where(CommunityPostShare.post_id == post.id)
+    )
+    share_count = share_count_result.scalar_one()
+
+    return CommunityPostOut(
+        id=post.id,
+        user_id=post.user_id,
+        user_public_user_id=build_public_user_id(post.user_id),
+        user_name=user.full_name or user.email,
+        user_avatar_url=user.avatar_url,
+        language_code=post.language_code,
+        title=post.title,
+        content=post.content,
+        image_url=post.image_url,
+        created_at=post.created_at.isoformat(),
+        reactions=reactions,
+        my_reaction=my_reaction,
+        share_count=share_count,
+        comments=comments,
     )
 
 
@@ -297,10 +466,49 @@ def tournament_question_to_out(question: dict[str, Any]) -> TournamentQuestionOu
         prompt=str(question.get("prompt", "")),
         options=list(question.get("options") or []),
         order_index=int(question.get("order_index", 1)),
+        section=question.get("section"),
+        question_type=str(question.get("question_type", "single_choice")),
+        audio_text=question.get("audio_text"),
+        audio_replay_limit=question.get("audio_replay_limit"),
+        passage_id=question.get("passage_id"),
+        passage_title=question.get("passage_title"),
+        passage_text=question.get("passage_text"),
     )
 
 
-def tournament_to_out(tournament: Tournament, *, is_registered: bool = False, include_questions: bool = False) -> TournamentOut:
+def current_tournament_window(now: datetime | None = None) -> tuple[datetime, datetime]:
+    current = now or utc_now()
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=UTC)
+    current = current.astimezone(UTC)
+    start = current - timedelta(days=current.weekday())
+    start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + timedelta(days=7)
+    return start, end
+
+
+def get_effective_tournament_room_status(tournament: Tournament, *, window_start: datetime) -> str:
+    started_at = tournament.room_started_at
+    if started_at is not None:
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=UTC)
+        started_at = started_at.astimezone(UTC)
+    if started_at is not None and started_at >= window_start and tournament.room_status == "in_progress":
+        return "in_progress"
+    return "waiting"
+
+
+def tournament_to_out(
+    tournament: Tournament,
+    *,
+    is_registered: bool = False,
+    include_questions: bool = False,
+    participant_count: int = 0,
+) -> TournamentOut:
+    starts_at, ends_at = current_tournament_window()
+    questions = list(tournament.questions or [])
+    room_status = get_effective_tournament_room_status(tournament, window_start=starts_at)
+    room_started_at = tournament.room_started_at
     return TournamentOut(
         id=tournament.id,
         language_code=tournament.language_code,
@@ -312,7 +520,14 @@ def tournament_to_out(tournament: Tournament, *, is_registered: bool = False, in
         reward_description=tournament.reward_description,
         is_active=tournament.is_active,
         is_registered=is_registered,
-        questions=[tournament_question_to_out(item) for item in (tournament.questions if include_questions else [])],
+        question_count=len(questions),
+        participant_count=participant_count,
+        room_status=room_status,
+        starts_at=starts_at.isoformat(),
+        ends_at=ends_at.isoformat(),
+        waiting_room_opened_at=starts_at.isoformat(),
+        room_started_at=room_started_at.isoformat() if room_started_at else None,
+        questions=[tournament_question_to_out(item) for item in (questions if include_questions and room_status == "in_progress" else [])],
     )
 
 
@@ -325,7 +540,282 @@ def evaluate_tournament_question(question: dict[str, Any], answer: Any) -> bool:
     return normalize_answer(answer) == normalize_answer(correct_answer)
 
 
+def build_tournament_question(
+    question_id: int,
+    *,
+    prompt: str,
+    options: list[str],
+    correct_option: str,
+    section: str,
+    question_type: str = "single_choice",
+    audio_text: str | None = None,
+    audio_replay_limit: int | None = None,
+    passage_id: str | None = None,
+    passage_title: str | None = None,
+    passage_text: str | None = None,
+) -> dict[str, Any]:
+    option_ids = ["a", "b", "c", "d"]
+    return {
+        "id": question_id,
+        "prompt": prompt,
+        "options": [{"id": option_ids[index], "text": text} for index, text in enumerate(options)],
+        "correct_answer": correct_option,
+        "order_index": question_id,
+        "section": section,
+        "question_type": question_type,
+        "audio_text": audio_text,
+        "audio_replay_limit": audio_replay_limit,
+        "passage_id": passage_id,
+        "passage_title": passage_title,
+        "passage_text": passage_text,
+    }
+
+
+def build_human_rights_tournament_questions() -> list[dict[str, Any]]:
+    questions: list[dict[str, Any]] = []
+
+    grammar_questions = [
+        ("Choose the correct sentence: Everyone ___ equal before the law.", ["is", "are", "be", "been"], "a"),
+        ("If a person is arrested, they ___ be informed of their rights immediately.", ["can", "must", "might", "would"], "b"),
+        ("The report on prison conditions ___ by an independent team last year.", ["writes", "wrote", "was written", "is writing"], "c"),
+        ("People should be allowed ___ their opinions peacefully.", ["express", "to express", "expressing", "expressed"], "b"),
+        ("No one may be punished unless the law ___ the act clearly.", ["allow", "allowed", "allows", "allowing"], "c"),
+        ("The committee asked whether the witnesses ___ safe during the hearing.", ["is", "was", "were", "be"], "c"),
+        ("Equal access to education is a right ___ supports social progress.", ["who", "that", "where", "what"], "b"),
+        ("A government that protects privacy ___ respect personal data.", ["should", "should have", "should had", "should having"], "a"),
+        ("Citizens ___ vote freely in a fair election.", ["should be able to", "should be able", "should can", "should able to"], "a"),
+        ("The village built a study center so that children ___ continue learning after work.", ["can", "could", "may", "shall"], "b"),
+        ("The new policy is designed ___ discrimination in public services.", ["reduce", "reducing", "to reduce", "reduced"], "c"),
+        ("Although the case was difficult, the judge listened ___ to every victim.", ["careful", "carefully", "more careful", "care"], "b"),
+        ("The students discussed how rights ___ in everyday life.", ["protect", "protected", "are protected", "are protecting"], "c"),
+        ("A person who reports abuse should not ___ punished for telling the truth.", ["be", "being", "been", "is"], "a"),
+        ("The organization has worked on children's rights ___ 2010.", ["for", "since", "from", "during"], "b"),
+    ]
+    for prompt, options, correct in grammar_questions:
+        questions.append(
+            build_tournament_question(
+                len(questions) + 1,
+                prompt=prompt,
+                options=options,
+                correct_option=correct,
+                section="grammar",
+            )
+        )
+
+    vocabulary_questions = [
+        ("What does 'dignity' mean in the phrase 'human dignity must be protected'?", ["personal worth", "public holiday", "legal office", "school subject"], "a"),
+        ("Choose the best meaning of 'equality'.", ["special treatment for one group", "the state of being treated fairly and the same", "a private agreement", "a type of punishment"], "b"),
+        ("What is the closest meaning of 'freedom of speech'?", ["the right to travel abroad", "the right to choose a job", "the right to express opinions", "the right to own land"], "c"),
+        ("In human-rights contexts, 'justice' is closest to ___.", ["fair treatment under the law", "a fast internet connection", "a public parade", "a school uniform"], "a"),
+        ("What does 'privacy' mean?", ["the right to keep personal life and data from unwanted access", "the right to vote twice", "the right to skip school", "the right to own a factory"], "a"),
+        ("Choose the meaning of 'discrimination'.", ["equal access to services", "unfair treatment based on identity", "a public debate", "a peace agreement"], "b"),
+        ("In law and rights education, 'consent' means ___.", ["official punishment", "voluntary agreement", "financial support", "secret evidence"], "b"),
+        ("A 'refugee' is someone who ___.", ["moves for tourism", "flees danger and seeks safety", "works for the court", "teaches language at school"], "b"),
+        ("What is a 'minority' group?", ["the largest group in a country", "a group with less political power and fewer members", "all children under 18", "only public workers"], "b"),
+        ("Choose the best meaning of 'fair trial'.", ["a quick trial with no lawyer", "a trial held in secret", "a legal process that respects evidence and defense rights", "a trial only for rich people"], "c"),
+        ("What does 'peaceful assembly' refer to?", ["meeting violently to damage property", "gathering together without violence", "studying alone at home", "voting by phone"], "b"),
+        ("What is the closest meaning of 'protection' in 'child protection policy'?", ["care and safety from harm", "public celebration", "exam competition", "migration document"], "a"),
+        ("Choose the best meaning of 'responsibility'.", ["a duty to act properly", "a private reward", "a type of tax", "a legal excuse"], "a"),
+        ("In education rights, 'access' means ___.", ["the ability to enter or use something", "the decision to ban something", "a special police order", "a written confession"], "a"),
+        ("What does 'advocate' mean as a verb in 'students advocate for equal rights'?", ["to hide", "to support publicly", "to ignore", "to punish"], "b"),
+    ]
+    for prompt, options, correct in vocabulary_questions:
+        questions.append(
+            build_tournament_question(
+                len(questions) + 1,
+                prompt=prompt,
+                options=options,
+                correct_option=correct,
+                section="vocabulary",
+            )
+        )
+
+    listening_audio_text = (
+        "At Sunrise Community Center, volunteers are teaching teenagers about human rights. In today's workshop, they focus on respect, "
+        "equal access, and safe reporting. The speaker says every student deserves a classroom free from bullying and discrimination. "
+        "If a learner feels unsafe, they should report the problem early to a teacher or counselor instead of staying silent. "
+        "The workshop also reminds students that privacy matters online, so people should understand how their data is used before clicking agree. "
+        "At the end, the speaker says communities become stronger when girls and boys receive the same education, the same respect, and the same chance to lead."
+    )
+    listening_questions = [
+        (
+            "According to the audio, what should a student do if they feel unsafe?",
+            ["Stay silent and wait", "Report the problem early to a teacher or counselor", "Leave school immediately", "Post the issue online first"],
+            "b",
+        ),
+        (
+            "What kind of classroom does every student deserve?",
+            ["A classroom with fewer rules", "A classroom only for top students", "A classroom free from bullying and discrimination", "A classroom with no homework"],
+            "c",
+        ),
+        (
+            "What digital right is mentioned in the audio?",
+            ["The right to own a computer", "The right to online privacy and informed consent", "The right to unlimited internet use", "The right to hide school records"],
+            "b",
+        ),
+        (
+            "Who should receive the same education and chance to lead?",
+            ["Only community volunteers", "Only older students", "Girls and boys", "Teachers and parents"],
+            "c",
+        ),
+        (
+            "What is the main purpose of the workshop?",
+            ["To teach teenagers about human rights in daily life", "To prepare teenagers for a sports event", "To explain how to use social media faster", "To recruit new school leaders"],
+            "a",
+        ),
+    ]
+    for index, (prompt, options, correct) in enumerate(listening_questions):
+        questions.append(
+            build_tournament_question(
+                len(questions) + 1,
+                prompt=prompt,
+                options=options,
+                correct_option=correct,
+                section="listening",
+                question_type="listening",
+                audio_text=listening_audio_text if index == 0 else None,
+                audio_replay_limit=3 if index == 0 else None,
+            )
+        )
+
+    reading_one_title = "Reading 1: The School Rights Club"
+    reading_one_text = (
+        "At Riverdale Secondary School, students created a Human Rights Club after several classmates said they felt ignored "
+        "when school rules were discussed. The club did not begin as a protest group. Instead, it started as a listening space "
+        "where students could explain what made them feel safe, respected, and included. The first issue they discussed was "
+        "access to information. Some students did not fully understand the school's discipline process, so they feared being "
+        "punished without knowing the rules. The club asked the school to publish a simple guide explaining student rights and "
+        "responsibilities in clear language. Teachers agreed, and the guide was posted in classrooms and online.\n\n"
+        "The club then focused on participation. Student leaders argued that learners should have a voice in decisions that affect "
+        "their daily lives, especially when those decisions involve safety, privacy, and equal treatment. The principal invited club "
+        "members to monthly meetings with teachers and parents. During these meetings, students raised concerns about insults aimed "
+        "at minority groups and suggested stronger anti-bullying steps. The school responded by creating a confidential reporting form "
+        "and training peer supporters.\n\n"
+        "Within a few months, the atmosphere changed. More students joined activities, complaints were handled more quickly, and trust "
+        "grew between staff and learners. The club learned that rights become meaningful when people understand them, talk about them, "
+        "and act together to protect them."
+    )
+    reading_one_questions = [
+        ("Why was the Human Rights Club created?", ["To organize sports events", "To give students a place to discuss safety and respect", "To replace the principal", "To cancel all school rules"], "b"),
+        ("What was the first issue the club discussed?", ["School uniforms", "Food prices", "Access to information about discipline rules", "Bus schedules"], "c"),
+        ("How did the school respond to the students' request?", ["It ignored the request", "It removed the discipline policy", "It published a simple guide to rights and responsibilities", "It punished the club members"], "c"),
+        ("What did the principal do after students asked for participation?", ["Closed the club", "Invited members to monthly meetings", "Transferred the teachers", "Stopped online communication"], "b"),
+        ("What is the main lesson of the passage?", ["Rights matter only in courtrooms", "Students should avoid school decisions", "Rights become real when people understand and protect them together", "Bullying can never be reduced"], "c"),
+    ]
+    for prompt, options, correct in reading_one_questions:
+        questions.append(
+            build_tournament_question(
+                len(questions) + 1,
+                prompt=prompt,
+                options=options,
+                correct_option=correct,
+                section="reading",
+                question_type="reading",
+                passage_id="reading-1",
+                passage_title=reading_one_title,
+                passage_text=reading_one_text,
+            )
+        )
+
+    reading_two_title = "Reading 2: A Community Center and Digital Rights"
+    reading_two_text = (
+        "In a coastal city, a public community center began offering free internet access and digital-skills classes for families who "
+        "could not afford computers at home. At first, the project aimed only to improve job opportunities and school performance. "
+        "However, staff soon realized that digital access was also connected to broader human-rights questions. Adults needed the internet "
+        "to apply for services, workers used it to learn about labor laws, and young people depended on it to join classes, express ideas, "
+        "and stay informed about public issues.\n\n"
+        "As the center grew, another concern appeared: privacy. Some users created accounts on shared computers without understanding how "
+        "their information could be stored. Volunteers noticed that people often clicked 'accept' on long online forms without reading them. "
+        "In response, the center added short lessons on passwords, consent, and data protection. Trainers explained that digital tools can "
+        "expand freedom, but they can also expose people to surveillance, fraud, or harassment if safeguards are ignored.\n\n"
+        "The center also made inclusion a priority. It offered evening classes for workers, screen-reader software for visually impaired users, "
+        "and translated guides for migrant families. Staff believed that equal access does not mean giving everyone the exact same support. "
+        "Instead, it means removing barriers so each person can use the service effectively. By the end of the year, the project was recognized "
+        "by local officials as a model for combining education, equality, and civic participation.\n\n"
+        "The center's director said the biggest success was not the number of computers installed. It was the shift in confidence. People who "
+        "once felt excluded from public life were now sending messages to local representatives, reading official updates, applying for benefits, "
+        "and helping neighbors understand their rights. Access, privacy, and inclusion were no longer abstract concepts. They had become daily practices."
+    )
+    reading_two_questions = [
+        ("What was the center's original goal?", ["To sell computers", "To improve job and study opportunities", "To replace local schools", "To monitor online behavior"], "b"),
+        ("Why did staff connect internet access to human rights?", ["Because only lawyers use the internet", "Because digital access affects services, learning, and participation", "Because internet use is a private hobby only", "Because paper forms were banned"], "b"),
+        ("What privacy problem did volunteers notice?", ["People refused to use computers", "Users often ignored how personal data was handled", "Children played too many games", "Teachers deleted all accounts"], "b"),
+        ("What was added after privacy concerns appeared?", ["Longer registration forms", "Computer repair classes only", "Lessons on passwords, consent, and data protection", "A fee for every internet session"], "c"),
+        ("According to the passage, digital tools can be risky when ___.", ["they are used only in the morning", "safeguards are ignored", "they are installed in libraries", "adults use them for work"], "b"),
+        ("How did the center support visually impaired users?", ["By closing evening classes", "By offering free phones", "By installing screen-reader software", "By printing fewer guides"], "c"),
+        ("What does the passage suggest about equal access?", ["Everyone should receive identical support in all cases", "Removing barriers is necessary for effective access", "Only migrant families need support", "Access matters less than speed"], "b"),
+        ("Why were guides translated for migrant families?", ["To make services easier to use", "To reduce computer costs", "To limit privacy rights", "To replace language classes"], "a"),
+        ("What did local officials recognize?", ["A new private company", "A model that joined education, equality, and civic participation", "A campaign against technology", "A plan to remove public internet"], "b"),
+        ("What is the best summary of the final paragraph?", ["The project mattered mainly because of new hardware", "People gained confidence to use rights in daily life", "Officials controlled all communication", "The center ended its classes after one year"], "b"),
+    ]
+    for prompt, options, correct in reading_two_questions:
+        questions.append(
+            build_tournament_question(
+                len(questions) + 1,
+                prompt=prompt,
+                options=options,
+                correct_option=correct,
+                section="reading",
+                question_type="reading",
+                passage_id="reading-2",
+                passage_title=reading_two_title,
+                passage_text=reading_two_text,
+            )
+        )
+
+    return questions
+
+
+def build_tournament_leaderboard_rows(attempts: list[TournamentAttempt]) -> list[tuple[int, TournamentAttempt]]:
+    rows: list[tuple[int, TournamentAttempt]] = []
+    seen_user_ids: set[int] = set()
+    for attempt in attempts:
+        if attempt.user_id in seen_user_ids:
+            continue
+        seen_user_ids.add(attempt.user_id)
+        rows.append((attempt.user_id, attempt))
+    return rows
+
+
+def apply_human_rights_tournament_blueprint(tournament: Tournament) -> bool:
+    questions = build_human_rights_tournament_questions()
+    title = "Giáº£i Ä‘áº¥u quyá»n con ngÆ°á»i tuáº§n nÃ y"
+    description = (
+        "BÃ i thi 50 cÃ¢u theo chá»§ Ä‘á» quyá»n con ngÆ°á»i, gá»“m ngá»¯ phÃ¡p, tá»« vá»±ng, nghe vÃ  Ä‘á»c hiá»ƒu Ä‘á»ƒ xáº¿p háº¡ng toÃ n server."
+    )
+    reward_title = "Huy hiá»‡u NhÃ¢n quyá»n tuáº§n"
+    reward_description = "Top cao nháº­n huy hiá»‡u giáº£i Ä‘áº¥u, Ä‘iá»ƒm thÆ°á»Ÿng vÃ  vá»‹ trÃ­ ná»•i báº­t trÃªn báº£ng xáº¿p háº¡ng."
+    current_questions = list(tournament.questions or [])
+    current_listening_audio_count = sum(
+        1 for question in current_questions if question.get("section") == "listening" and question.get("audio_text")
+    )
+    should_refresh = (
+        len(current_questions) != len(questions)
+        or "quyá»n con ngÆ°á»i" not in (tournament.title or "").lower()
+        or tournament.duration_minutes != 50
+        or current_listening_audio_count != 1
+    )
+    if not should_refresh:
+        return False
+
+    tournament.title = title
+    tournament.description = description
+    tournament.duration_minutes = 50
+    tournament.passing_score = 60
+    tournament.reward_title = reward_title
+    tournament.reward_description = reward_description
+    tournament.questions = questions
+    return True
+
+
 async def ensure_sample_tournament(session: Any, *, language_code: str) -> Tournament:
+    questions = build_human_rights_tournament_questions()
+    title = "Giáº£i Ä‘áº¥u quyá»n con ngÆ°á»i tuáº§n nÃ y"
+    description = (
+        "BÃ i thi 50 cÃ¢u theo chá»§ Ä‘á» quyá»n con ngÆ°á»i, gá»“m ngá»¯ phÃ¡p, tá»« vá»±ng, nghe vÃ  Ä‘á»c hiá»ƒu Ä‘á»ƒ xáº¿p háº¡ng toÃ n server."
+    )
+    reward_title = "Huy hiá»‡u NhÃ¢n quyá»n tuáº§n"
+    reward_description = "Top cao nháº­n huy hiá»‡u giáº£i Ä‘áº¥u, Ä‘iá»ƒm thÆ°á»Ÿng vÃ  vá»‹ trÃ­ ná»•i báº­t trÃªn báº£ng xáº¿p háº¡ng."
     result = await session.execute(
         select(Tournament)
         .where(Tournament.language_code == language_code, Tournament.is_active.is_(True))
@@ -334,42 +824,61 @@ async def ensure_sample_tournament(session: Any, *, language_code: str) -> Tourn
     )
     tournament = result.scalar_one_or_none()
     if tournament is not None:
+        current_listening_audio_count = sum(
+            1
+            for question in list(tournament.questions or [])
+            if question.get("section") == "listening" and question.get("audio_text")
+        )
+        should_refresh = (
+            len(list(tournament.questions or [])) != len(questions)
+            or "quyá»n con ngÆ°á»i" not in (tournament.title or "").lower()
+            or tournament.duration_minutes != 50
+            or current_listening_audio_count != 1
+        )
+        if should_refresh:
+            tournament.title = title
+            tournament.description = description
+            tournament.duration_minutes = 50
+            tournament.passing_score = 60
+            tournament.reward_title = reward_title
+            tournament.reward_description = reward_description
+            tournament.questions = questions
         return tournament
 
     tournament = Tournament(
         language_code=language_code,
-        title=f"Giải đấu {language_code.upper()} tuần này",
-        description="Bài thi hỗn hợp để tranh bảng xếp hạng giải đấu.",
+        title=f"Giáº£i Ä‘áº¥u {language_code.upper()} tuáº§n nÃ y",
+        description="BÃ i thi há»—n há»£p Ä‘á»ƒ tranh báº£ng xáº¿p háº¡ng giáº£i Ä‘áº¥u.",
         duration_minutes=20,
         passing_score=60,
-        reward_title="Huy hiệu Top giải đấu",
-        reward_description="Top đầu nhận huy hiệu và điểm thưởng trong giải đấu.",
+        reward_title="Huy hiá»‡u Top giáº£i Ä‘áº¥u",
+        reward_description="Top Ä‘áº§u nháº­n huy hiá»‡u vÃ  Ä‘iá»ƒm thÆ°á»Ÿng trong giáº£i Ä‘áº¥u.",
         questions=[
             {
                 "id": 1,
-                "prompt": "Chọn đáp án đúng.",
+                "prompt": "Chá»n Ä‘Ã¡p Ã¡n Ä‘Ãºng.",
                 "options": [
-                    {"id": "a", "text": "Đáp án A"},
-                    {"id": "b", "text": "Đáp án B"},
-                    {"id": "c", "text": "Đáp án C"},
+                    {"id": "a", "text": "ÄÃ¡p Ã¡n A"},
+                    {"id": "b", "text": "ÄÃ¡p Ã¡n B"},
+                    {"id": "c", "text": "ÄÃ¡p Ã¡n C"},
                 ],
                 "correct_answer": "a",
                 "order_index": 1,
             },
             {
                 "id": 2,
-                "prompt": "Điền từ còn thiếu.",
+                "prompt": "Äiá»n tá»« cÃ²n thiáº¿u.",
                 "options": [],
                 "correct_answer": "sample",
                 "order_index": 2,
             },
             {
                 "id": 3,
-                "prompt": "Chọn nghĩa gần đúng nhất.",
+                "prompt": "Chá»n nghÄ©a gáº§n Ä‘Ãºng nháº¥t.",
                 "options": [
-                    {"id": "1", "text": "Nghĩa 1"},
-                    {"id": "2", "text": "Nghĩa 2"},
-                    {"id": "3", "text": "Nghĩa 3"},
+                    {"id": "1", "text": "NghÄ©a 1"},
+                    {"id": "2", "text": "NghÄ©a 2"},
+                    {"id": "3", "text": "NghÄ©a 3"},
                 ],
                 "correct_answer": "2",
                 "order_index": 3,
@@ -377,6 +886,13 @@ async def ensure_sample_tournament(session: Any, *, language_code: str) -> Tourn
         ],
         is_active=True,
     )
+    tournament.title = title
+    tournament.description = description
+    tournament.duration_minutes = 50
+    tournament.passing_score = 60
+    tournament.reward_title = reward_title
+    tournament.reward_description = reward_description
+    tournament.questions = questions
     session.add(tournament)
     await session.flush()
     return tournament
@@ -401,7 +917,7 @@ async def get_exam(exam_id: int):
         exam_result = await session.execute(select(Exam).where(Exam.id == exam_id, Exam.is_active.is_(True)))
         exam = exam_result.scalar_one_or_none()
         if exam is None:
-            raise HTTPException(status_code=404, detail="Đề thi không tồn tại")
+            raise HTTPException(status_code=404, detail="Äá» thi khÃ´ng tá»“n táº¡i")
 
         question_result = await session.execute(
             select(ExamQuestion).where(ExamQuestion.exam_id == exam.id).order_by(ExamQuestion.order_index.asc())
@@ -419,14 +935,14 @@ async def submit_exam(
         exam_result = await session.execute(select(Exam).where(Exam.id == exam_id, Exam.is_active.is_(True)))
         exam = exam_result.scalar_one_or_none()
         if exam is None:
-            raise HTTPException(status_code=404, detail="Đề thi không tồn tại")
+            raise HTTPException(status_code=404, detail="Äá» thi khÃ´ng tá»“n táº¡i")
 
         question_result = await session.execute(
             select(ExamQuestion).where(ExamQuestion.exam_id == exam.id).order_by(ExamQuestion.order_index.asc())
         )
         questions = question_result.scalars().all()
         if not questions:
-            raise HTTPException(status_code=400, detail="Đề thi chưa có câu hỏi")
+            raise HTTPException(status_code=400, detail="Äá» thi chÆ°a cÃ³ cÃ¢u há»i")
 
         correct_count = 0
         for question in questions:
@@ -459,8 +975,8 @@ async def submit_exam(
             await create_notification(
                 session,
                 user_id=current_user.id,
-                title="Đã nộp bài thi",
-                content=f"Bạn đạt {score_percent}% trong đề {exam.title}.",
+                title="ÄÃ£ ná»™p bÃ i thi",
+                content=f"Báº¡n Ä‘áº¡t {score_percent}% trong Ä‘á» {exam.title}.",
                 notification_type="exam",
             )
 
@@ -476,7 +992,7 @@ async def submit_exam(
             total_questions=len(questions),
             score_percent=score_percent,
             passed=passed,
-            feedback="Đạt yêu cầu." if passed else "Chưa đạt, bạn nên ôn lại rồi thử tiếp.",
+            feedback="Äáº¡t yÃªu cáº§u." if passed else "ChÆ°a Ä‘áº¡t, báº¡n nÃªn Ã´n láº¡i rá»“i thá»­ tiáº¿p.",
         )
 
 
@@ -495,7 +1011,7 @@ async def get_my_exam_attempts(current_user: User = Depends(get_current_user)):
                 total_questions=item.total_questions,
                 score_percent=item.score_percent,
                 passed=item.passed,
-                feedback="Đạt yêu cầu." if item.passed else "Chưa đạt.",
+                feedback="Äáº¡t yÃªu cáº§u." if item.passed else "ChÆ°a Ä‘áº¡t.",
             )
             for item in attempts
         ]
@@ -523,8 +1039,23 @@ async def list_tournaments(
                 )
             )
             registered_ids = set(registration_result.scalars().all())
+        participant_counts: dict[int, int] = {}
+        if tournaments:
+            participant_result = await session.execute(
+                select(TournamentRegistration.tournament_id, func.count(TournamentRegistration.id))
+                .where(TournamentRegistration.tournament_id.in_([item.id for item in tournaments]))
+                .group_by(TournamentRegistration.tournament_id)
+            )
+            participant_counts = {tournament_id: count for tournament_id, count in participant_result.all()}
         await session.commit()
-        return [tournament_to_out(item, is_registered=item.id in registered_ids) for item in tournaments]
+        return [
+            tournament_to_out(
+                item,
+                is_registered=item.id in registered_ids,
+                participant_count=participant_counts.get(item.id, 0),
+            )
+            for item in tournaments
+        ]
 
 
 @router.get("/tournaments/{tournament_id}", response_model=TournamentOut)
@@ -533,7 +1064,9 @@ async def get_tournament_detail(tournament_id: int, current_user: User | None = 
         result = await session.execute(select(Tournament).where(Tournament.id == tournament_id, Tournament.is_active.is_(True)))
         tournament = result.scalar_one_or_none()
         if tournament is None:
-            raise HTTPException(status_code=404, detail="Giải đấu không tồn tại")
+            raise HTTPException(status_code=404, detail="Giáº£i Ä‘áº¥u khÃ´ng tá»“n táº¡i")
+        if apply_human_rights_tournament_blueprint(tournament):
+            await session.commit()
 
         is_registered = False
         if current_user is not None:
@@ -544,7 +1077,16 @@ async def get_tournament_detail(tournament_id: int, current_user: User | None = 
                 )
             )
             is_registered = registration_result.scalar_one_or_none() is not None
-        return tournament_to_out(tournament, is_registered=is_registered, include_questions=is_registered)
+        participant_count = (
+            await session.execute(select(func.count(TournamentRegistration.id)).where(TournamentRegistration.tournament_id == tournament.id))
+        ).scalar_one()
+        current_user_is_admin = await is_admin(session, current_user.id) if current_user else False
+        return tournament_to_out(
+            tournament,
+            is_registered=is_registered,
+            include_questions=is_registered or current_user_is_admin,
+            participant_count=participant_count,
+        )
 
 
 @router.post("/tournaments/{tournament_id}/register", response_model=TournamentRegisterOut)
@@ -553,7 +1095,7 @@ async def register_tournament(tournament_id: int, current_user: User = Depends(g
         result = await session.execute(select(Tournament).where(Tournament.id == tournament_id, Tournament.is_active.is_(True)))
         tournament = result.scalar_one_or_none()
         if tournament is None:
-            raise HTTPException(status_code=404, detail="Giải đấu không tồn tại")
+            raise HTTPException(status_code=404, detail="Giáº£i Ä‘áº¥u khÃ´ng tá»“n táº¡i")
 
         existing_result = await session.execute(
             select(TournamentRegistration).where(
@@ -566,13 +1108,39 @@ async def register_tournament(tournament_id: int, current_user: User = Depends(g
             await create_notification(
                 session,
                 user_id=current_user.id,
-                title="Đã đăng ký giải đấu",
-                content=f"Bạn đã đăng ký {tournament.title}.",
+                title="ÄÃ£ Ä‘Äƒng kÃ½ giáº£i Ä‘áº¥u",
+                content=f"Báº¡n Ä‘Ã£ Ä‘Äƒng kÃ½ {tournament.title}.",
                 notification_type="tournament",
             )
         await session.commit()
         await send_user_event(current_user.id, "tournament:registered", {"tournament_id": tournament.id})
-        return TournamentRegisterOut(tournament_id=tournament.id, registered=True, message="Đã đăng ký giải đấu")
+        await broadcast_event("tournament:room:update", {"tournament_id": tournament.id})
+        return TournamentRegisterOut(tournament_id=tournament.id, registered=True, message="ÄÃ£ Ä‘Äƒng kÃ½ giáº£i Ä‘áº¥u")
+
+
+@router.post("/tournaments/{tournament_id}/start-room", response_model=TournamentRoomStartOut)
+async def start_tournament_room(tournament_id: int, current_user: User = Depends(get_current_user)):
+    async with AsyncSessionLocal() as session:
+        if not await is_admin(session, current_user.id):
+            raise HTTPException(status_code=403, detail="Only admin can start tournament room")
+
+        result = await session.execute(select(Tournament).where(Tournament.id == tournament_id, Tournament.is_active.is_(True)))
+        tournament = result.scalar_one_or_none()
+        if tournament is None:
+            raise HTTPException(status_code=404, detail="Giáº£i Ä‘áº¥u khÃ´ng tá»“n táº¡i")
+        apply_human_rights_tournament_blueprint(tournament)
+
+        tournament.room_status = "in_progress"
+        tournament.room_started_at = utc_now()
+        await session.commit()
+        await send_user_event(current_user.id, "tournament:room:started", {"tournament_id": tournament.id})
+        await broadcast_event("tournament:room:update", {"tournament_id": tournament.id})
+        return TournamentRoomStartOut(
+            tournament_id=tournament.id,
+            room_status=tournament.room_status,
+            room_started_at=tournament.room_started_at.isoformat(),
+            message="ÄÃ£ má»Ÿ phÃ²ng thi cho toÃ n bá»™ thÃ­ sinh",
+        )
 
 
 @router.post("/tournaments/{tournament_id}/submit", response_model=TournamentSubmitOut)
@@ -585,7 +1153,8 @@ async def submit_tournament(
         result = await session.execute(select(Tournament).where(Tournament.id == tournament_id, Tournament.is_active.is_(True)))
         tournament = result.scalar_one_or_none()
         if tournament is None:
-            raise HTTPException(status_code=404, detail="Giải đấu không tồn tại")
+            raise HTTPException(status_code=404, detail="Giáº£i Ä‘áº¥u khÃ´ng tá»“n táº¡i")
+        apply_human_rights_tournament_blueprint(tournament)
 
         registration_result = await session.execute(
             select(TournamentRegistration.id).where(
@@ -594,11 +1163,15 @@ async def submit_tournament(
             )
         )
         if registration_result.scalar_one_or_none() is None:
-            raise HTTPException(status_code=403, detail="Bạn cần đăng ký giải đấu trước")
+            session.add(TournamentRegistration(tournament_id=tournament.id, user_id=current_user.id))
+            await session.flush()
+
+        if get_effective_tournament_room_status(tournament, window_start=current_tournament_window()[0]) != "in_progress":
+            raise HTTPException(status_code=403, detail="PhÃ²ng thi chÆ°a Ä‘Æ°á»£c admin má»Ÿ")
 
         questions = tournament.questions or []
         if not questions:
-            raise HTTPException(status_code=400, detail="Giải đấu chưa có bài thi hỗn hợp")
+            raise HTTPException(status_code=400, detail="Giáº£i Ä‘áº¥u chÆ°a cÃ³ bÃ i thi há»—n há»£p")
 
         correct_count = 0
         for question in questions:
@@ -622,12 +1195,19 @@ async def submit_tournament(
         await create_notification(
             session,
             user_id=current_user.id,
-            title="Đã nộp bài giải đấu",
+            title="ÄÃ£ ná»™p bÃ i giáº£i Ä‘áº¥u",
             content=f"{tournament.title}: {score_percent}%.",
             notification_type="tournament",
         )
         await session.commit()
         await session.refresh(attempt)
+        ranking_result = await session.execute(
+            select(TournamentAttempt)
+            .where(TournamentAttempt.tournament_id == tournament.id)
+            .order_by(TournamentAttempt.score_percent.desc(), TournamentAttempt.created_at.asc())
+        )
+        ranking_rows = build_tournament_leaderboard_rows(list(ranking_result.scalars().all()))
+        user_rank = next((index + 1 for index, (user_id, _) in enumerate(ranking_rows) if user_id == current_user.id), None)
         await send_user_event(
             current_user.id,
             "tournament:submitted",
@@ -643,7 +1223,9 @@ async def submit_tournament(
             score_percent=score_percent,
             passed=passed,
             reward_title=tournament.reward_title if passed else None,
-            feedback="Đạt giải thưởng." if passed else "Chưa đạt giải, hãy thử lại.",
+            feedback="Äáº¡t giáº£i thÆ°á»Ÿng." if passed else "ChÆ°a Ä‘áº¡t giáº£i, hÃ£y thá»­ láº¡i.",
+            rank=user_rank,
+            leaderboard_size=len(ranking_rows),
         )
 
 
@@ -656,19 +1238,27 @@ async def get_tournament_leaderboard(tournament_id: int):
             .join(Tournament, Tournament.id == TournamentAttempt.tournament_id)
             .where(TournamentAttempt.tournament_id == tournament_id)
             .order_by(TournamentAttempt.score_percent.desc(), TournamentAttempt.created_at.asc())
-            .limit(20)
+            .limit(500)
         )
-        return [
-            TournamentLeaderboardItemOut(
+        rows: list[TournamentLeaderboardItemOut] = []
+        seen_user_ids: set[int] = set()
+        for attempt, user, tournament in result.all():
+            if user.id in seen_user_ids:
+                continue
+            seen_user_ids.add(user.id)
+            rows.append(
+                TournamentLeaderboardItemOut(
                 user_id=user.id,
                 user_name=user.full_name or user.email,
                 score_percent=attempt.score_percent,
                 correct_count=attempt.correct_count,
                 total_questions=attempt.total_questions,
                 reward_title=tournament.reward_title if attempt.passed else None,
+                )
             )
-            for attempt, user, tournament in result.all()
-        ]
+            if len(rows) >= 50:
+                break
+        return rows
 
 
 @router.get("/me/notebook", response_model=list[NotebookEntryOut])
@@ -703,7 +1293,7 @@ async def update_notebook_entry(entry_id: int, payload: NotebookEntryInput, curr
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Ghi chú không tồn tại")
+            raise HTTPException(status_code=404, detail="Ghi chÃº khÃ´ng tá»“n táº¡i")
         item.title = payload.title
         item.content = payload.content
         item.tag = payload.tag
@@ -723,11 +1313,11 @@ async def delete_notebook_entry(entry_id: int, current_user: User = Depends(get_
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Ghi chú không tồn tại")
+            raise HTTPException(status_code=404, detail="Ghi chÃº khÃ´ng tá»“n táº¡i")
         await session.delete(item)
         await session.commit()
         await send_user_event(current_user.id, "notebook:delete", {"entry_id": entry_id})
-        return SimpleStatusOut(ok=True, message="Đã xóa ghi chú")
+        return SimpleStatusOut(ok=True, message="ÄÃ£ xÃ³a ghi chÃº")
 
 
 @router.get("/me/notebook/reminders", response_model=list[NotebookReminderOut])
@@ -768,7 +1358,7 @@ async def complete_notebook_reminder(reminder_id: int, current_user: User = Depe
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Nhắc nhở không tồn tại")
+            raise HTTPException(status_code=404, detail="Nháº¯c nhá»Ÿ khÃ´ng tá»“n táº¡i")
         item.is_active = False
         await session.commit()
         await session.refresh(item)
@@ -849,7 +1439,7 @@ async def update_vocabulary_bank_selection(
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Kho từ vựng không tồn tại")
+            raise HTTPException(status_code=404, detail="Kho tá»« vá»±ng khÃ´ng tá»“n táº¡i")
         item.is_selected = payload.is_selected
         await session.commit()
         await session.refresh(item)
@@ -873,7 +1463,7 @@ async def update_vocabulary_bank_practice(
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Kho từ vựng không tồn tại")
+            raise HTTPException(status_code=404, detail="Kho tá»« vá»±ng khÃ´ng tá»“n táº¡i")
         item.is_in_practice = payload.is_in_practice
         if payload.is_in_practice:
             item.is_selected = True
@@ -895,11 +1485,11 @@ async def delete_vocabulary_bank_item(item_id: int, current_user: User = Depends
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Từ đã lưu không tồn tại")
+            raise HTTPException(status_code=404, detail="Tá»« Ä‘Ã£ lÆ°u khÃ´ng tá»“n táº¡i")
         await session.delete(item)
         await session.commit()
         await send_user_event(current_user.id, "vocabulary-bank:delete", {"item_id": item_id})
-        return SimpleStatusOut(ok=True, message="Đã xóa từ đã lưu")
+        return SimpleStatusOut(ok=True, message="ÄÃ£ xÃ³a tá»« Ä‘Ã£ lÆ°u")
 
 
 @router.get("/me/notifications", response_model=list[NotificationOut])
@@ -924,7 +1514,7 @@ async def mark_notification_read(notification_id: int, current_user: User = Depe
         )
         item = result.scalar_one_or_none()
         if item is None:
-            raise HTTPException(status_code=404, detail="Thông báo không tồn tại")
+            raise HTTPException(status_code=404, detail="ThÃ´ng bÃ¡o khÃ´ng tá»“n táº¡i")
         item.is_read = True
         await session.commit()
         await session.refresh(item)
@@ -1118,19 +1708,20 @@ async def get_leaderboard(language_code: str | None = Query(default=None, max_le
 async def list_group_rooms(current_user: User = Depends(get_current_user)):
     async with AsyncSessionLocal() as session:
         result = await session.execute(
-            select(GroupRoom, func.count(GroupRoomMember.id))
+            select(GroupRoom, User, func.count(GroupRoomMember.id))
+            .join(User, User.id == GroupRoom.owner_user_id)
             .join(GroupRoomMember, GroupRoomMember.room_id == GroupRoom.id)
             .where(
                 GroupRoom.id.in_(
                     select(GroupRoomMember.room_id).where(GroupRoomMember.user_id == current_user.id)
                 )
             )
-            .group_by(GroupRoom.id)
+            .group_by(GroupRoom.id, User.id)
             .order_by(GroupRoom.created_at.desc())
         )
         return [
-            group_room_to_out(room, current_user_id=current_user.id, member_count=member_count)
-            for room, member_count in result.all()
+            group_room_to_out(room, owner=owner, current_user_id=current_user.id, member_count=member_count)
+            for room, owner, member_count in result.all()
         ]
 
 
@@ -1149,7 +1740,7 @@ async def create_group_room(payload: GroupRoomInput, current_user: User = Depend
         session.add(GroupRoomMember(room_id=room.id, user_id=current_user.id))
         await session.commit()
         await session.refresh(room)
-        return group_room_to_out(room, current_user_id=current_user.id, member_count=1)
+        return group_room_to_out(room, owner=current_user, current_user_id=current_user.id, member_count=1)
 
 
 @router.post("/community/groups/join", response_model=GroupRoomOut)
@@ -1158,9 +1749,9 @@ async def join_group_room(payload: GroupRoomJoinInput, current_user: User = Depe
         result = await session.execute(select(GroupRoom).where(GroupRoom.room_code == payload.room_code.upper()))
         room = result.scalar_one_or_none()
         if room is None:
-            raise HTTPException(status_code=404, detail="Nhóm không tồn tại")
+            raise HTTPException(status_code=404, detail="NhÃ³m khÃ´ng tá»“n táº¡i")
         if room.passcode_hash != hash_group_passcode(payload.passcode):
-            raise HTTPException(status_code=400, detail="Mật khẩu nhóm không đúng")
+            raise HTTPException(status_code=400, detail="Máº­t kháº©u nhÃ³m khÃ´ng Ä‘Ãºng")
 
         member_result = await session.execute(
             select(GroupRoomMember).where(
@@ -1177,15 +1768,17 @@ async def join_group_room(payload: GroupRoomJoinInput, current_user: User = Depe
             select(func.count(GroupRoomMember.id)).where(GroupRoomMember.room_id == room.id)
         )
         member_count = count_result.scalar_one()
+        owner_result = await session.execute(select(User).where(User.id == room.owner_user_id))
+        owner = owner_result.scalar_one()
         await session.commit()
-        return group_room_to_out(room, current_user_id=current_user.id, member_count=member_count)
+        return group_room_to_out(room, owner=owner, current_user_id=current_user.id, member_count=member_count)
 
 
 async def ensure_room_member(session: Any, *, room_id: int, user_id: int) -> GroupRoom:
     room_result = await session.execute(select(GroupRoom).where(GroupRoom.id == room_id))
     room = room_result.scalar_one_or_none()
     if room is None:
-        raise HTTPException(status_code=404, detail="Nhóm không tồn tại")
+        raise HTTPException(status_code=404, detail="NhÃ³m khÃ´ng tá»“n táº¡i")
 
     member_result = await session.execute(
         select(GroupRoomMember).where(
@@ -1194,7 +1787,7 @@ async def ensure_room_member(session: Any, *, room_id: int, user_id: int) -> Gro
         )
     )
     if member_result.scalar_one_or_none() is None:
-        raise HTTPException(status_code=403, detail="Bạn chưa tham gia nhóm này")
+        raise HTTPException(status_code=403, detail="Báº¡n chÆ°a tham gia nhÃ³m nÃ y")
 
     return room
 
@@ -1211,7 +1804,7 @@ async def list_group_room_messages(room_id: int, current_user: User = Depends(ge
             .limit(100)
         )
         return [
-            group_message_to_out(message, user_name=user.full_name or user.email)
+            group_message_to_out(message, user=user)
             for message, user in result.all()
         ]
 
@@ -1228,11 +1821,21 @@ async def create_group_room_message(
             select(GroupRoomMember.user_id).where(GroupRoomMember.room_id == room_id)
         )
         member_ids = list(members_result.scalars().all())
-        message = GroupRoomMessage(room_id=room_id, user_id=current_user.id, content=payload.content)
+        content = (payload.content or "").strip()
+        if not content and not payload.image_url and not payload.audio_url:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tin nhan khong duoc de trong")
+        message = GroupRoomMessage(
+            room_id=room_id,
+            user_id=current_user.id,
+            content=content,
+            image_url=payload.image_url,
+            audio_url=payload.audio_url,
+            audio_name=(payload.audio_name or "").strip() or None,
+        )
         session.add(message)
         await session.commit()
         await session.refresh(message)
-        message_out = group_message_to_out(message, user_name=current_user.full_name or current_user.email)
+        message_out = group_message_to_out(message, user=current_user)
         for member_id in member_ids:
             await send_user_event(
                 member_id,
@@ -1245,49 +1848,74 @@ async def create_group_room_message(
         return message_out
 
 
+@router.get("/community/global-chat/messages", response_model=list[GroupRoomMessageOut])
+async def list_global_chat_messages(current_user: User = Depends(get_current_user)):
+    async with AsyncSessionLocal() as session:
+        room = await get_or_create_global_chat_room(session, current_user=current_user)
+        result = await session.execute(
+            select(GroupRoomMessage, User)
+            .join(User, User.id == GroupRoomMessage.user_id)
+            .where(GroupRoomMessage.room_id == room.id)
+            .order_by(GroupRoomMessage.created_at.asc())
+            .limit(200)
+        )
+        return [group_message_to_out(message, user=user) for message, user in result.all()]
+
+
+@router.post("/community/global-chat/messages", response_model=GroupRoomMessageOut, status_code=status.HTTP_201_CREATED)
+async def create_global_chat_message(
+    payload: GroupRoomMessageInput,
+    current_user: User = Depends(get_current_user),
+):
+    async with AsyncSessionLocal() as session:
+        room = await get_or_create_global_chat_room(session, current_user=current_user)
+        content = (payload.content or "").strip()
+        if not content and not payload.image_url and not payload.audio_url:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tin nhan khong duoc de trong")
+        message = GroupRoomMessage(
+            room_id=room.id,
+            user_id=current_user.id,
+            content=content,
+            image_url=payload.image_url,
+            audio_url=payload.audio_url,
+            audio_name=(payload.audio_name or "").strip() or None,
+        )
+        session.add(message)
+        await session.commit()
+        await session.refresh(message)
+        message_out = group_message_to_out(message, user=current_user)
+        await broadcast_event(
+            "global:message",
+            {
+                "room_id": room.id,
+                "message": message_out.model_dump(),
+            },
+        )
+        return message_out
+
+
 @router.get("/community/posts", response_model=list[CommunityPostOut])
-async def list_community_posts(language_code: str | None = Query(default=None, max_length=10)):
+async def list_community_posts(
+    language_code: str | None = Query(default=None, max_length=10),
+    current_user: User | None = Depends(get_optional_current_user),
+):
     async with AsyncSessionLocal() as session:
         post_query = select(CommunityPost, User).join(User, User.id == CommunityPost.user_id).where(CommunityPost.is_active.is_(True))
         if language_code:
             post_query = post_query.where(CommunityPost.language_code == language_code)
         post_result = await session.execute(post_query.order_by(CommunityPost.created_at.desc()).limit(30))
         rows = post_result.all()
-        post_ids = [post.id for post, _user in rows]
-
-        comments_by_post: dict[int, list[CommunityCommentOut]] = defaultdict(list)
-        if post_ids:
-            comment_result = await session.execute(
-                select(CommunityComment, User)
-                .join(User, User.id == CommunityComment.user_id)
-                .where(CommunityComment.post_id.in_(post_ids))
-                .order_by(CommunityComment.created_at.asc())
-            )
-            for comment, user in comment_result.all():
-                comments_by_post[comment.post_id].append(
-                    CommunityCommentOut(
-                        id=comment.id,
-                        post_id=comment.post_id,
-                        user_id=comment.user_id,
-                        user_name=user.full_name or user.email,
-                        content=comment.content,
-                        created_at=comment.created_at.isoformat(),
-                    )
+        items: list[CommunityPostOut] = []
+        for post, user in rows:
+            items.append(
+                await build_community_post_out(
+                    session,
+                    post=post,
+                    user=user,
+                    current_user_id=current_user.id if current_user else None,
                 )
-
-        return [
-            CommunityPostOut(
-                id=post.id,
-                user_id=post.user_id,
-                user_name=user.full_name or user.email,
-                language_code=post.language_code,
-                title=post.title,
-                content=post.content,
-                created_at=post.created_at.isoformat(),
-                comments=comments_by_post.get(post.id, []),
             )
-            for post, user in rows
-        ]
+        return items
 
 
 @router.post("/community/posts", response_model=CommunityPostOut, status_code=status.HTTP_201_CREATED)
@@ -1297,18 +1925,59 @@ async def create_community_post(payload: CommunityPostInput, current_user: User 
         session.add(post)
         await session.commit()
         await session.refresh(post)
-        post_out = CommunityPostOut(
-            id=post.id,
-            user_id=post.user_id,
-            user_name=current_user.full_name or current_user.email,
-            language_code=post.language_code,
-            title=post.title,
-            content=post.content,
-            created_at=post.created_at.isoformat(),
-            comments=[],
-        )
+        post_out = await build_community_post_out(session, post=post, user=current_user, current_user_id=current_user.id)
         await broadcast_event("community:post:new", {"language_code": post.language_code, "post": post_out.model_dump()})
         return post_out
+
+
+@router.patch("/community/posts/{post_id}", response_model=CommunityPostOut)
+async def update_community_post(
+    post_id: int,
+    payload: CommunityPostUpdateInput,
+    current_user: User = Depends(get_current_user),
+):
+    async with AsyncSessionLocal() as session:
+        post = (
+            await session.execute(
+                select(CommunityPost).where(CommunityPost.id == post_id, CommunityPost.is_active.is_(True))
+            )
+        ).scalar_one_or_none()
+        if post is None:
+            raise HTTPException(status_code=404, detail="Bai viet khong ton tai")
+        if post.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Ban chi duoc sua bai viet cua minh")
+
+        post.title = payload.title.strip()
+        post.content = payload.content.strip()
+        post.image_url = payload.image_url
+        await session.commit()
+        await session.refresh(post)
+
+        post_out = await build_community_post_out(session, post=post, user=current_user, current_user_id=current_user.id)
+        await broadcast_event(
+            "community:post:update",
+            {"language_code": post.language_code, "post_id": post.id, "post": post_out.model_dump()},
+        )
+        return post_out
+
+
+@router.delete("/community/posts/{post_id}", response_model=SimpleStatusOut)
+async def delete_community_post(post_id: int, current_user: User = Depends(get_current_user)):
+    async with AsyncSessionLocal() as session:
+        post = (
+            await session.execute(
+                select(CommunityPost).where(CommunityPost.id == post_id, CommunityPost.is_active.is_(True))
+            )
+        ).scalar_one_or_none()
+        if post is None:
+            raise HTTPException(status_code=404, detail="Bai viet khong ton tai")
+        if post.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Ban chi duoc xoa bai viet cua minh")
+
+        post.is_active = False
+        await session.commit()
+        await broadcast_event("community:post:removed", {"language_code": post.language_code, "post_id": post.id})
+        return SimpleStatusOut(ok=True, message="Da xoa bai viet")
 
 
 @router.post("/community/posts/{post_id}/comments", response_model=CommunityCommentOut, status_code=status.HTTP_201_CREATED)
@@ -1321,24 +1990,99 @@ async def create_community_comment(
         post_result = await session.execute(select(CommunityPost).where(CommunityPost.id == post_id, CommunityPost.is_active.is_(True)))
         post = post_result.scalar_one_or_none()
         if post is None:
-            raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
+            raise HTTPException(status_code=404, detail="BÃ i viáº¿t khÃ´ng tá»“n táº¡i")
         comment = CommunityComment(post_id=post_id, user_id=current_user.id, content=payload.content)
         session.add(comment)
         await session.commit()
         await session.refresh(comment)
-        comment_out = CommunityCommentOut(
-            id=comment.id,
-            post_id=comment.post_id,
-            user_id=comment.user_id,
-            user_name=current_user.full_name or current_user.email,
-            content=comment.content,
-            created_at=comment.created_at.isoformat(),
-        )
+        comment_out = community_comment_to_out(comment, user=current_user)
         await broadcast_event(
             "community:comment:new",
             {"language_code": post.language_code, "post_id": post.id, "comment": comment_out.model_dump()},
         )
         return comment_out
+
+
+@router.post("/community/posts/{post_id}/reactions", response_model=CommunityReactionSummaryOut)
+async def react_community_post(
+    post_id: int,
+    payload: CommunityReactionInput,
+    current_user: User = Depends(get_current_user),
+):
+    reaction_type = payload.reaction_type.strip().lower()
+    if reaction_type not in {"like", "haha", "tym"}:
+        raise HTTPException(status_code=422, detail="Reaction khong hop le")
+
+    async with AsyncSessionLocal() as session:
+        post = (
+            await session.execute(select(CommunityPost).where(CommunityPost.id == post_id, CommunityPost.is_active.is_(True)))
+        ).scalar_one_or_none()
+        if post is None:
+            raise HTTPException(status_code=404, detail="Bai viet khong ton tai")
+
+        existing = (
+            await session.execute(
+                select(CommunityPostReaction).where(
+                    CommunityPostReaction.post_id == post_id,
+                    CommunityPostReaction.user_id == current_user.id,
+                )
+            )
+        ).scalar_one_or_none()
+
+        my_reaction = reaction_type
+        if existing is None:
+            session.add(CommunityPostReaction(post_id=post_id, user_id=current_user.id, reaction_type=reaction_type))
+        elif existing.reaction_type == reaction_type:
+            await session.delete(existing)
+            my_reaction = None
+        else:
+            existing.reaction_type = reaction_type
+
+        await session.commit()
+        reaction_result = await session.execute(
+            select(CommunityPostReaction.reaction_type, func.count(CommunityPostReaction.id))
+            .where(CommunityPostReaction.post_id == post_id)
+            .group_by(CommunityPostReaction.reaction_type)
+        )
+        reactions = {kind: count for kind, count in reaction_result.all()}
+        summary = CommunityReactionSummaryOut(post_id=post_id, reactions=reactions, my_reaction=my_reaction)
+        await broadcast_event(
+            "community:reaction:update",
+            {"language_code": post.language_code, "post_id": post_id, "summary": summary.model_dump()},
+        )
+        return summary
+
+
+@router.post("/community/posts/{post_id}/share", response_model=CommunityShareSummaryOut)
+async def share_community_post(post_id: int, current_user: User = Depends(get_current_user)):
+    async with AsyncSessionLocal() as session:
+        post = (
+            await session.execute(select(CommunityPost).where(CommunityPost.id == post_id, CommunityPost.is_active.is_(True)))
+        ).scalar_one_or_none()
+        if post is None:
+            raise HTTPException(status_code=404, detail="Bai viet khong ton tai")
+
+        existing = (
+            await session.execute(
+                select(CommunityPostShare).where(
+                    CommunityPostShare.post_id == post_id,
+                    CommunityPostShare.user_id == current_user.id,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing is None:
+            session.add(CommunityPostShare(post_id=post_id, user_id=current_user.id))
+            await session.commit()
+
+        share_count_result = await session.execute(
+            select(func.count(CommunityPostShare.id)).where(CommunityPostShare.post_id == post_id)
+        )
+        summary = CommunityShareSummaryOut(post_id=post_id, share_count=share_count_result.scalar_one())
+        await broadcast_event(
+            "community:share:update",
+            {"language_code": post.language_code, "post_id": post_id, "summary": summary.model_dump()},
+        )
+        return summary
 
 
 @router.post("/community/posts/{post_id}/report", response_model=SimpleStatusOut, status_code=status.HTTP_201_CREATED)
@@ -1354,7 +2098,7 @@ async def report_community_post(
             )
         ).scalar_one_or_none()
         if post is None:
-            raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
+            raise HTTPException(status_code=404, detail="BÃ i viáº¿t khÃ´ng tá»“n táº¡i")
 
         existing = (
             await session.execute(
@@ -1366,7 +2110,7 @@ async def report_community_post(
             )
         ).scalar_one_or_none()
         if existing is not None:
-            raise HTTPException(status_code=409, detail="Bạn đã báo cáo bài viết này rồi")
+            raise HTTPException(status_code=409, detail="Báº¡n Ä‘Ã£ bÃ¡o cÃ¡o bÃ i viáº¿t nÃ y rá»“i")
 
         report = CommunityReport(
             reporter_user_id=current_user.id,
@@ -1378,7 +2122,33 @@ async def report_community_post(
         session.add(report)
         await session.commit()
         await notify_admin_community_refresh()
-        return SimpleStatusOut(ok=True, message="Đã gửi báo cáo vi phạm")
+        return SimpleStatusOut(ok=True, message="ÄÃ£ gá»­i bÃ¡o cÃ¡o vi pháº¡m")
+
+
+@router.get("/community/users/search", response_model=list[CommunityUserOut])
+async def search_community_users(
+    query: str = Query(min_length=1, max_length=255),
+    current_user: User = Depends(get_current_user),
+):
+    search_value = query.strip()
+    if not search_value:
+        return []
+
+    conditions = [
+        User.email.ilike(f"%{search_value.lower()}%"),
+        User.full_name.ilike(f"%{search_value}%"),
+    ]
+    if search_value.isdigit():
+        conditions.append(User.id == int(search_value.lstrip("0") or "0"))
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User)
+            .where(User.id != current_user.id, or_(*conditions))
+            .order_by(User.full_name.asc().nullslast(), User.email.asc())
+            .limit(8)
+        )
+        return [community_user_to_out(user) for user in result.scalars().all()]
 
 
 @router.get("/community/friends", response_model=list[FriendLinkOut])
@@ -1395,7 +2165,10 @@ async def list_friends(current_user: User = Depends(get_current_user)):
                 id=link.id,
                 user_id=link.user_id,
                 friend_user_id=link.friend_user_id,
+                friend_public_user_id=build_public_user_id(user.id),
                 friend_name=user.full_name or user.email,
+                friend_email=user.email,
+                friend_avatar_url=user.avatar_url,
                 status=link.status,
                 created_at=link.created_at.isoformat(),
             )
@@ -1406,13 +2179,13 @@ async def list_friends(current_user: User = Depends(get_current_user)):
 @router.post("/community/friends/{friend_user_id}", response_model=FriendLinkOut, status_code=status.HTTP_201_CREATED)
 async def add_friend(friend_user_id: int, current_user: User = Depends(get_current_user)):
     if friend_user_id == current_user.id:
-        raise HTTPException(status_code=400, detail="Không thể kết bạn với chính mình")
+        raise HTTPException(status_code=400, detail="KhÃ´ng thá»ƒ káº¿t báº¡n vá»›i chÃ­nh mÃ¬nh")
 
     async with AsyncSessionLocal() as session:
         friend_result = await session.execute(select(User).where(User.id == friend_user_id))
         friend = friend_result.scalar_one_or_none()
         if friend is None:
-            raise HTTPException(status_code=404, detail="Người dùng không tồn tại")
+            raise HTTPException(status_code=404, detail="NgÆ°á»i dÃ¹ng khÃ´ng tá»“n táº¡i")
 
         existing = await session.execute(
             select(FriendLink).where(
@@ -1424,13 +2197,79 @@ async def add_friend(friend_user_id: int, current_user: User = Depends(get_curre
         if link is None:
             link = FriendLink(user_id=current_user.id, friend_user_id=friend_user_id, status="accepted")
             session.add(link)
+            await session.flush()
+        reverse_result = await session.execute(
+            select(FriendLink).where(
+                FriendLink.user_id == friend_user_id,
+                FriendLink.friend_user_id == current_user.id,
+            )
+        )
+        if reverse_result.scalar_one_or_none() is None:
+            session.add(FriendLink(user_id=friend_user_id, friend_user_id=current_user.id, status="accepted"))
         await session.commit()
         await session.refresh(link)
         return FriendLinkOut(
             id=link.id,
             user_id=link.user_id,
             friend_user_id=link.friend_user_id,
+            friend_public_user_id=build_public_user_id(friend.id),
             friend_name=friend.full_name or friend.email,
+            friend_email=friend.email,
+            friend_avatar_url=friend.avatar_url,
             status=link.status,
             created_at=link.created_at.isoformat(),
         )
+
+
+@router.get("/community/direct-messages/{friend_user_id}", response_model=list[DirectMessageOut])
+async def list_direct_messages(friend_user_id: int, current_user: User = Depends(get_current_user)):
+    async with AsyncSessionLocal() as session:
+        friend = await ensure_friend_link(session, user_id=current_user.id, friend_user_id=friend_user_id)
+        result = await session.execute(
+            select(DirectMessage)
+            .where(
+                or_(
+                    (DirectMessage.sender_user_id == current_user.id) & (DirectMessage.recipient_user_id == friend_user_id),
+                    (DirectMessage.sender_user_id == friend_user_id) & (DirectMessage.recipient_user_id == current_user.id),
+                )
+            )
+            .order_by(DirectMessage.created_at.asc())
+            .limit(200)
+        )
+
+        messages = result.scalars().all()
+        user_ids = {current_user.id, friend.id}
+        users = (
+            await session.execute(select(User).where(User.id.in_(user_ids)))
+        ).scalars().all()
+        users_by_id = {user.id: user for user in users}
+        return [
+            direct_message_to_out(
+                message,
+                sender=users_by_id[message.sender_user_id],
+                recipient=users_by_id[message.recipient_user_id],
+            )
+            for message in messages
+        ]
+
+
+@router.post("/community/direct-messages/{friend_user_id}", response_model=DirectMessageOut, status_code=status.HTTP_201_CREATED)
+async def create_direct_message(
+    friend_user_id: int,
+    payload: DirectMessageInput,
+    current_user: User = Depends(get_current_user),
+):
+    async with AsyncSessionLocal() as session:
+        friend = await ensure_friend_link(session, user_id=current_user.id, friend_user_id=friend_user_id)
+        message = DirectMessage(sender_user_id=current_user.id, recipient_user_id=friend_user_id, content=payload.content)
+        session.add(message)
+        await session.commit()
+        await session.refresh(message)
+        message_out = direct_message_to_out(message, sender=current_user, recipient=friend)
+        for user_id in {current_user.id, friend_user_id}:
+            await send_user_event(
+                user_id,
+                "direct:message",
+                {"friend_user_id": friend_user_id if user_id == current_user.id else current_user.id, "message": message_out.model_dump()},
+            )
+        return message_out

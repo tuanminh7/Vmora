@@ -16,6 +16,7 @@ import {
   confirmAdminPayment,
   confirmPasswordReset,
   createAdminCollectionItem,
+  createCommunityComment,
   createCommunityPost,
   createGroupRoom,
   createManualAdminEntitlement,
@@ -26,6 +27,7 @@ import {
   createTicket,
   createVocabularyBankItem,
   deleteAdminCollectionItem,
+  deleteCommunityPost,
   deleteQuestionBankItem,
   extendAdminEntitlement,
   getAdminCollection,
@@ -35,10 +37,12 @@ import {
   getAdminUsers,
   getAdminWorkspace,
   getCommunityPosts,
+  getDirectMessages,
   getEntitlements,
   getExamDetail,
   getExams,
   getFriends,
+  getGlobalChatMessages,
   getGroupRoomMessages,
   getGroupRooms,
   getHealth,
@@ -57,6 +61,7 @@ import {
   getPracticeActivities,
   getRealtimeUrl,
   getStudyStreak,
+  getSupportAdminProfile,
   getTickets,
   getTournamentDetail,
   getTournamentLeaderboard,
@@ -75,18 +80,25 @@ import {
   publishAdminLearningContent,
   register,
   registerTournament,
+  reactCommunityPost,
   reportCommunityPost,
   refundAdminPayment,
   replyAdminTicket,
   replaceAdminPackageCourses,
   resolveAdminCommunityReport,
   requestPasswordReset,
+  searchCommunityUsers,
+  sendDirectMessage,
+  sendGlobalChatMessage,
   sendGroupRoomMessage,
   sendAdminNotification,
   sendPetVoice,
+  startTournamentRoom,
   submitExam,
   submitPracticeActivity,
   submitTournament,
+  shareCommunityPost,
+  updateCommunityPost,
   updateAdminCollectionItem,
   updateAdminFeatureFlag,
   updateAdminSystemSetting,
@@ -155,6 +167,18 @@ function normalizeAdminEditPayload(collection, item) {
   return payload;
 }
 
+function normalizeAdminContactProfile(profile, currentUser = null) {
+  if (!profile) return null;
+  const isCurrentAdmin =
+    currentUser?.is_admin &&
+    (currentUser.email === profile.email || currentUser.public_user_id === profile.public_user_id);
+
+  return {
+    ...profile,
+    avatar_url: isCurrentAdmin && currentUser.avatar_url ? currentUser.avatar_url : profile.avatar_url || "",
+  };
+}
+
 export default function useVmoraApp() {
   const [token, setToken] = useState(() => getStoredToken());
   const [user, setUser] = useState(null);
@@ -216,6 +240,7 @@ export default function useVmoraApp() {
     title: "Liên hệ admin",
     content: "",
   });
+  const [adminContactProfile, setAdminContactProfile] = useState(null);
   const [pet, setPet] = useState(null);
   const [petVoice, setPetVoice] = useState([]);
   const [petForm, setPetForm] = useState({
@@ -227,12 +252,25 @@ export default function useVmoraApp() {
   });
   const [leaderboard, setLeaderboard] = useState([]);
   const [posts, setPosts] = useState([]);
+  const [communityPostForm, setCommunityPostForm] = useState({ title: "", content: "", imageUrl: "" });
+  const [communityCommentForms, setCommunityCommentForms] = useState({});
+  const [editingCommunityPostId, setEditingCommunityPostId] = useState(null);
+  const [communityPostEditForm, setCommunityPostEditForm] = useState({ title: "", content: "", imageUrl: "" });
   const [friends, setFriends] = useState([]);
+  const [friendSearchQuery, setFriendSearchQuery] = useState("");
+  const [friendSearchResults, setFriendSearchResults] = useState([]);
+  const [selectedFriendId, setSelectedFriendId] = useState(null);
+  const [directMessages, setDirectMessages] = useState([]);
+  const [directMessageText, setDirectMessageText] = useState("");
   const [groupRooms, setGroupRooms] = useState([]);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [groupMessages, setGroupMessages] = useState([]);
+  const [globalChatMessages, setGlobalChatMessages] = useState([]);
+  const [globalChatText, setGlobalChatText] = useState("");
+  const [globalChatAttachment, setGlobalChatAttachment] = useState({ imageUrl: "", audioUrl: "", audioName: "" });
   const [groupForm, setGroupForm] = useState({ name: "Nhóm riêng", roomCode: "", passcode: "" });
   const [groupMessage, setGroupMessage] = useState("");
+  const [groupMessageAttachment, setGroupMessageAttachment] = useState({ imageUrl: "", audioUrl: "", audioName: "" });
 
   const [adminDashboard, setAdminDashboard] = useState(null);
   const [adminArea, setAdminArea] = useState("dashboard");
@@ -288,10 +326,23 @@ export default function useVmoraApp() {
     examCertificate,
     isAdmin: user?.is_admin,
     languageCode,
+    selectedFriendId,
     selectedGroupId,
     token,
     tournamentId,
   };
+
+  async function loadAdminContactProfile(currentUser = user) {
+    try {
+      const payload = await getSupportAdminProfile();
+      const nextProfile = normalizeAdminContactProfile(payload, currentUser);
+      setAdminContactProfile(nextProfile);
+      return nextProfile;
+    } catch {
+      setAdminContactProfile(null);
+      return null;
+    }
+  }
 
   function refreshLeaderboardRealtime(targetLanguage = languageCode) {
     if (!targetLanguage) return;
@@ -367,6 +418,7 @@ export default function useVmoraApp() {
         setLanguages(items);
       })
       .catch(() => setLanguages([]));
+    loadAdminContactProfile();
   }, []);
 
   useEffect(() => {
@@ -379,7 +431,8 @@ export default function useVmoraApp() {
       .then((payload) => {
         const localAvatar = getStoredProfileAvatar(payload.id);
         const avatarUrl = localAvatar || payload.avatar_url || "";
-        setUser({ ...payload, avatar_url: avatarUrl });
+        const nextUser = { ...payload, avatar_url: avatarUrl };
+        setUser(nextUser);
         setSelectedLanguage(payload.learning_language_code ?? "");
         setProfileForm({
           fullName: payload.full_name ?? "",
@@ -387,6 +440,7 @@ export default function useVmoraApp() {
           address: payload.address ?? "",
           avatarUrl,
         });
+        loadAdminContactProfile(nextUser);
       })
       .catch(() => {
         clearStoredToken();
@@ -434,7 +488,7 @@ export default function useVmoraApp() {
         setTournamentId(null);
       });
     getLeaderboard(languageCode).then(setLeaderboard).catch(() => setLeaderboard([]));
-    getCommunityPosts(languageCode).then(setPosts).catch(() => setPosts([]));
+    getCommunityPosts(languageCode, token).then(setPosts).catch(() => setPosts([]));
   }, [languageCode, token]);
 
   useEffect(() => {
@@ -477,6 +531,7 @@ export default function useVmoraApp() {
         setGroupRooms([]);
         setSelectedGroupId(null);
       });
+    getGlobalChatMessages(token).then(setGlobalChatMessages).catch(() => setGlobalChatMessages([]));
   }, [token, user]);
 
   useEffect(() => {
@@ -497,6 +552,20 @@ export default function useVmoraApp() {
     }
     getGroupRoomMessages(token, selectedGroupId).then(setGroupMessages).catch(() => setGroupMessages([]));
   }, [token, selectedGroupId]);
+
+  useEffect(() => {
+    if (!selectedFriendId && friends.length > 0) {
+      setSelectedFriendId(friends[0].friend_user_id);
+    }
+  }, [friends, selectedFriendId]);
+
+  useEffect(() => {
+    if (!token || !selectedFriendId) {
+      setDirectMessages([]);
+      return;
+    }
+    getDirectMessages(token, selectedFriendId).then(setDirectMessages).catch(() => setDirectMessages([]));
+  }, [token, selectedFriendId]);
 
   useEffect(() => {
     if (!tournamentId) {
@@ -590,9 +659,35 @@ export default function useVmoraApp() {
           return;
         }
 
+        if (message.event === "global:message" && payload.message) {
+          setGlobalChatMessages((current) => {
+            if (current.some((item) => item.id === payload.message.id)) return current;
+            return [...current, payload.message];
+          });
+          return;
+        }
+
         if (message.event === "community:post:new" && payload.post) {
           if (!payload.language_code || payload.language_code === currentLanguageCode) {
             setPosts((current) => [payload.post, ...current.filter((item) => item.id !== payload.post.id)]);
+          }
+          return;
+        }
+
+        if (message.event === "community:post:update" && payload.post) {
+          if (!payload.language_code || payload.language_code === currentLanguageCode) {
+            setPosts((current) =>
+              current.map((item) =>
+                item.id === payload.post_id
+                  ? {
+                      ...item,
+                      title: payload.post.title,
+                      content: payload.post.content,
+                      image_url: payload.post.image_url ?? null,
+                    }
+                  : item,
+              ),
+            );
           }
           return;
         }
@@ -607,6 +702,45 @@ export default function useVmoraApp() {
                 return { ...item, comments: [...comments, payload.comment] };
               }),
             );
+          }
+          return;
+        }
+
+        if (message.event === "community:reaction:update" && payload.summary) {
+          if (!payload.language_code || payload.language_code === currentLanguageCode) {
+            setPosts((current) =>
+              current.map((item) =>
+                item.id === payload.post_id
+                  ? {
+                      ...item,
+                      reactions: payload.summary.reactions ?? {},
+                      my_reaction: payload.summary.my_reaction ?? item.my_reaction ?? null,
+                    }
+                  : item,
+              ),
+            );
+          }
+          return;
+        }
+
+        if (message.event === "community:share:update" && payload.summary) {
+          if (!payload.language_code || payload.language_code === currentLanguageCode) {
+            setPosts((current) =>
+              current.map((item) =>
+                item.id === payload.post_id ? { ...item, share_count: payload.summary.share_count ?? item.share_count ?? 0 } : item,
+              ),
+            );
+          }
+          return;
+        }
+
+        if (message.event === "direct:message" && payload.message) {
+          const targetFriendId = payload.friend_user_id;
+          if (targetFriendId === realtimeContext.selectedFriendId) {
+            setDirectMessages((current) => {
+              if (current.some((item) => item.id === payload.message.id)) return current;
+              return [...current, payload.message];
+            });
           }
           return;
         }
@@ -686,6 +820,11 @@ export default function useVmoraApp() {
         }
 
         if (message.event === "tournament:registered") {
+          refreshTournamentRealtime(payload.tournament_id || currentTournamentId);
+          return;
+        }
+
+        if (message.event === "tournament:room:update" || message.event === "tournament:room:started") {
           refreshTournamentRealtime(payload.tournament_id || currentTournamentId);
           return;
         }
@@ -925,7 +1064,11 @@ export default function useVmoraApp() {
     } else if (!remoteAvatar) {
       clearStoredProfileAvatar(payload.id);
     }
-    setUser({ ...payload, avatar_url: localAvatar || payload.avatar_url || "" });
+    const nextUser = { ...payload, avatar_url: localAvatar || payload.avatar_url || "" };
+    setUser(nextUser);
+    if (nextUser.is_admin) {
+      loadAdminContactProfile(nextUser);
+    }
     setMessage("Đã lưu hồ sơ");
   }
 
@@ -1021,16 +1164,38 @@ export default function useVmoraApp() {
     if (!token) return;
     const result = await registerTournament(token, item.id);
     setTournamentId(item.id);
+    setTournamentAnswers({});
+    setTournamentResult(null);
     setMessage(result.message);
     refreshTournamentRealtime(item.id);
+    return result;
   }
 
-  async function finishTournament() {
-    if (!token || !tournamentDetail) return;
-    const result = await submitTournament(token, tournamentDetail.id, tournamentAnswers);
-    setTournamentResult(result);
-    refreshTournamentRealtime(tournamentDetail.id);
-    refreshLeaderboardRealtime(languageCode);
+  async function openTournamentRoom(item) {
+    if (!token || !item) return;
+    const result = await startTournamentRoom(token, item.id);
+    setMessage(result.message);
+    refreshTournamentRealtime(item.id);
+    return result;
+  }
+
+  async function finishTournament(tournamentOverrideId = null) {
+    const targetTournamentId = tournamentOverrideId ?? tournamentDetail?.id ?? tournamentId;
+    if (!token || !targetTournamentId) {
+      setMessage("Bạn cần đăng nhập và chọn giải đấu trước khi nộp bài.");
+      return null;
+    }
+    try {
+      const result = await submitTournament(token, targetTournamentId, tournamentAnswers);
+      setTournamentResult(result);
+      setMessage(`Đã nộp bài: ${result.score_percent}% - hạng #${result.rank ?? "-"}.`);
+      refreshTournamentRealtime(targetTournamentId);
+      refreshLeaderboardRealtime(languageCode);
+      return result;
+    } catch (error) {
+      setMessage(error.message || "Không nộp được bài, bạn thử lại giúp mình.");
+      return null;
+    }
   }
 
   async function quickCreate(type) {
@@ -1057,6 +1222,156 @@ export default function useVmoraApp() {
     if (type === "post") {
       await createCommunityPost(token, { title: "Bài đăng mới", content: "Mình đang ôn bài hôm nay.", language_code: languageCode });
     }
+  }
+
+  function setCommunityCommentDraft(postId, value) {
+    setCommunityCommentForms((current) => ({ ...current, [postId]: value }));
+  }
+
+  function fillCommunityEditForm(post) {
+    setEditingCommunityPostId(post.id);
+    setCommunityPostEditForm({
+      title: post.title ?? "",
+      content: post.content ?? "",
+      imageUrl: post.image_url ?? "",
+    });
+  }
+
+  function cancelCommunityPostEdit() {
+    setEditingCommunityPostId(null);
+    setCommunityPostEditForm({ title: "", content: "", imageUrl: "" });
+  }
+
+  async function uploadCommunityPostImage(file) {
+    if (!file) {
+      setCommunityPostForm((current) => ({ ...current, imageUrl: "" }));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCommunityPostForm((current) => ({ ...current, imageUrl: typeof reader.result === "string" ? reader.result : "" }));
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function uploadCommunityPostEditImage(file) {
+    if (!file) {
+      setCommunityPostEditForm((current) => ({ ...current, imageUrl: "" }));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCommunityPostEditForm((current) => ({ ...current, imageUrl: typeof reader.result === "string" ? reader.result : "" }));
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+      reader.onerror = () => reject(new Error("Khong doc duoc file"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadGroupChatAttachment(file) {
+    if (!file) {
+      setGroupMessageAttachment({ imageUrl: "", audioUrl: "", audioName: "" });
+      return;
+    }
+
+    const dataUrl = await readFileAsDataUrl(file);
+    if (file.type.startsWith("image/")) {
+      setGroupMessageAttachment({ imageUrl: dataUrl, audioUrl: "", audioName: "" });
+      return;
+    }
+    if (file.type.startsWith("audio/")) {
+      setGroupMessageAttachment({ imageUrl: "", audioUrl: dataUrl, audioName: file.name || "voice-message" });
+    }
+  }
+
+  async function uploadGlobalChatAttachment(file) {
+    if (!file) {
+      setGlobalChatAttachment({ imageUrl: "", audioUrl: "", audioName: "" });
+      return;
+    }
+
+    const dataUrl = await readFileAsDataUrl(file);
+    if (file.type.startsWith("image/")) {
+      setGlobalChatAttachment({ imageUrl: dataUrl, audioUrl: "", audioName: "" });
+      return;
+    }
+    if (file.type.startsWith("audio/")) {
+      setGlobalChatAttachment({ imageUrl: "", audioUrl: dataUrl, audioName: file.name || "voice-message" });
+    }
+  }
+
+  async function submitCommunityPost(event) {
+    event?.preventDefault?.();
+    if (!token || !communityPostForm.content.trim()) return;
+    const post = await createCommunityPost(token, {
+      title: communityPostForm.title.trim() || "Bai dang moi",
+      content: communityPostForm.content.trim(),
+      language_code: languageCode || null,
+      image_url: communityPostForm.imageUrl || null,
+    });
+    setPosts((current) => [post, ...current.filter((item) => item.id !== post.id)]);
+    setCommunityPostForm({ title: "", content: "", imageUrl: "" });
+    setMessage("Da dang bai vao cong dong.");
+  }
+
+  async function saveCommunityPostEdit(postId) {
+    if (!token || !communityPostEditForm.content.trim()) return;
+    const post = await updateCommunityPost(token, postId, {
+      title: communityPostEditForm.title.trim() || "Bai dang moi",
+      content: communityPostEditForm.content.trim(),
+      image_url: communityPostEditForm.imageUrl || null,
+    });
+    setPosts((current) => current.map((item) => (item.id === postId ? { ...item, ...post } : item)));
+    cancelCommunityPostEdit();
+    setMessage("Da cap nhat bai viet.");
+  }
+
+  async function removeCommunityPost(postId) {
+    if (!token) return;
+    await deleteCommunityPost(token, postId);
+    setPosts((current) => current.filter((item) => item.id !== postId));
+    if (editingCommunityPostId === postId) {
+      cancelCommunityPostEdit();
+    }
+    setMessage("Da xoa bai viet.");
+  }
+
+  async function submitCommunityComment(postId) {
+    const content = (communityCommentForms[postId] || "").trim();
+    if (!token || !content) return;
+    const comment = await createCommunityComment(token, postId, { content });
+    setPosts((current) =>
+      current.map((item) =>
+        item.id === postId ? { ...item, comments: [...(item.comments ?? []), comment] } : item,
+      ),
+    );
+    setCommunityCommentForms((current) => ({ ...current, [postId]: "" }));
+  }
+
+  async function reactPost(postId, reactionType) {
+    if (!token) return;
+    const summary = await reactCommunityPost(token, postId, reactionType);
+    setPosts((current) =>
+      current.map((item) =>
+        item.id === postId ? { ...item, reactions: summary.reactions ?? {}, my_reaction: summary.my_reaction ?? null } : item,
+      ),
+    );
+  }
+
+  async function sharePost(postId) {
+    if (!token) return;
+    const summary = await shareCommunityPost(token, postId);
+    setPosts((current) =>
+      current.map((item) => (item.id === postId ? { ...item, share_count: summary.share_count ?? item.share_count ?? 0 } : item)),
+    );
+    setMessage("Da chia se bai viet.");
   }
 
   async function reportPost(postId, reason = "Người dùng báo cáo nội dung vi phạm.") {
@@ -1137,13 +1452,31 @@ export default function useVmoraApp() {
     await updateVocabularyBankPractice(token, item.id, !item.is_in_practice);
   }
 
-  async function addQuickFriend() {
-    if (!token) return;
-    const target = adminUsers.find((item) => item.id !== user.id);
-    if (target) {
-      const friend = await addFriend(token, target.id);
-      setFriends((current) => [friend, ...current.filter((item) => item.id !== friend.id)]);
+  async function searchFriendProfiles(event) {
+    event?.preventDefault?.();
+    if (!token || !friendSearchQuery.trim()) {
+      setFriendSearchResults([]);
+      return;
     }
+    const results = await searchCommunityUsers(token, friendSearchQuery.trim());
+    setFriendSearchResults(results);
+    setMessage(results.length ? `Tìm thấy ${results.length} hồ sơ.` : "Không tìm thấy hồ sơ phù hợp.");
+  }
+
+  async function addFriendProfile(profile) {
+    if (!token || !profile?.id) return;
+    const friend = await addFriend(token, profile.id);
+    setFriends((current) => [friend, ...current.filter((item) => item.friend_user_id !== friend.friend_user_id)]);
+    setFriendSearchResults((current) => current.filter((item) => item.id !== profile.id));
+    setMessage(`Đã kết bạn với ${friend.friend_name || friend.friend_email}.`);
+  }
+
+  async function addQuickFriend() {
+    if (friendSearchResults[0]) {
+      await addFriendProfile(friendSearchResults[0]);
+      return;
+    }
+    await searchFriendProfiles();
   }
 
   async function createPrivateGroup() {
@@ -1168,9 +1501,42 @@ export default function useVmoraApp() {
   }
 
   async function sendPrivateGroupMessage() {
-    if (!token || !selectedGroupId || !groupMessage.trim()) return;
-    await sendGroupRoomMessage(token, selectedGroupId, { content: groupMessage.trim() });
+    const content = groupMessage.trim();
+    if (!token || !selectedGroupId) return;
+    if (!content && !groupMessageAttachment.imageUrl && !groupMessageAttachment.audioUrl) return;
+    await sendGroupRoomMessage(token, selectedGroupId, {
+      content,
+      image_url: groupMessageAttachment.imageUrl || null,
+      audio_url: groupMessageAttachment.audioUrl || null,
+      audio_name: groupMessageAttachment.audioName || null,
+    });
     setGroupMessage("");
+    setGroupMessageAttachment({ imageUrl: "", audioUrl: "", audioName: "" });
+  }
+
+  async function sendGlobalMessage() {
+    const content = globalChatText.trim();
+    if (!token) return;
+    if (!content && !globalChatAttachment.imageUrl && !globalChatAttachment.audioUrl) return;
+    const message = await sendGlobalChatMessage(token, {
+      content,
+      image_url: globalChatAttachment.imageUrl || null,
+      audio_url: globalChatAttachment.audioUrl || null,
+      audio_name: globalChatAttachment.audioName || null,
+    });
+    setGlobalChatMessages((current) => {
+      if (current.some((item) => item.id === message.id)) return current;
+      return [...current, message];
+    });
+    setGlobalChatText("");
+    setGlobalChatAttachment({ imageUrl: "", audioUrl: "", audioName: "" });
+  }
+
+  async function sendFriendMessage() {
+    if (!token || !selectedFriendId || !directMessageText.trim()) return;
+    const message = await sendDirectMessage(token, selectedFriendId, { content: directMessageText.trim() });
+    setDirectMessages((current) => [...current, message]);
+    setDirectMessageText("");
   }
 
   async function markRead(id) {
@@ -1386,6 +1752,7 @@ export default function useVmoraApp() {
     addQuickFriend,
     addReminderQuick,
     adminArea,
+    adminContactProfile,
     adminDashboard,
     adminEditingItem,
     adminItems,
@@ -1419,8 +1786,14 @@ export default function useVmoraApp() {
     createAdminEntitlement,
     createAdminQuestion,
     createContactTicket,
+    communityCommentForms,
+    communityPostEditForm,
+    communityPostForm,
+    cancelCommunityPostEdit,
     currentLanguageEntitlements,
     contactForm,
+    directMessages,
+    directMessageText,
     doLogout,
     deleteAdminQuestion,
     entitlements,
@@ -1433,8 +1806,15 @@ export default function useVmoraApp() {
     finishTournament,
     finishLesson,
     friends,
+    friendSearchQuery,
+    friendSearchResults,
+    globalChatMessages,
+    globalChatAttachment,
+    globalChatText,
+    fillCommunityEditForm,
     groupForm,
     groupMessage,
+    groupMessageAttachment,
     groupMessages,
     groupRooms,
     hasPaidPracticeAccess,
@@ -1446,6 +1826,7 @@ export default function useVmoraApp() {
     leaderboard,
     lessonDetail,
     lockAdminUser,
+    loadAdminContactProfile,
     makeAdmin,
     markRead,
     message,
@@ -1454,6 +1835,7 @@ export default function useVmoraApp() {
     openExam,
     openLesson,
     openTournament,
+    openTournamentRoom,
     overview,
     packageAction,
     packages,
@@ -1461,6 +1843,7 @@ export default function useVmoraApp() {
     pet,
     petForm,
     petVoice,
+    editingCommunityPostId,
     posts,
     practiceActivities,
     practiceAnswers,
@@ -1472,9 +1855,11 @@ export default function useVmoraApp() {
     previewLearningLesson,
     publishLearningContent,
     removeAdminItem,
+    removeCommunityPost,
     resolveCommunityReport,
     resetAdminUserPassword,
     reportPost,
+    reactPost,
     renamePet,
     refundPaymentAdmin,
     saveProfile,
@@ -1482,10 +1867,14 @@ export default function useVmoraApp() {
     savePetConfig,
     saveAdminSystemSetting,
     saveUserSettings,
+    searchFriendProfiles,
     selectAdminUser,
+    selectedFriendId,
     selectedPractice,
     selectedGroupId,
     sendBroadcast,
+    sendFriendMessage,
+    sendGlobalMessage,
     sendPrivateGroupMessage,
     sendTargetedNotification,
     sendVoiceToPet,
@@ -1497,14 +1886,21 @@ export default function useVmoraApp() {
     setAuthMode: changeAuthMode,
     setExamCertificate,
     setExamAnswers,
+    setFriendSearchQuery,
+    setGlobalChatText,
     setGroupForm,
     setGroupMessage,
+    setCommunityCommentDraft,
+    setCommunityPostEditForm,
+    setCommunityPostForm,
+    setDirectMessageText,
     setPracticeAnswers,
     setPracticeId,
     setPracticeResult,
     setPetForm,
     setProfileForm,
     setContactForm,
+    setSelectedFriendId,
     setSelectedGroupId,
     setSettingsForm,
     setTournamentAnswers,
@@ -1513,18 +1909,27 @@ export default function useVmoraApp() {
     streak,
     settingsForm,
     toggleAdminFeature,
+    saveCommunityPostEdit,
+    submitCommunityComment,
+    submitCommunityPost,
     submitPractice,
     tickets,
     unlockAdminUser,
     updateAdminQuestion,
     updateSupportWorkflow,
     tournamentAnswers,
+    addFriendProfile,
+    sharePost,
     tournamentDetail,
     tournamentId,
     tournamentLeaderboard,
     tournamentResult,
     tournaments,
     toggleVocabularySelection,
+    uploadCommunityPostImage,
+    uploadCommunityPostEditImage,
+    uploadGlobalChatAttachment,
+    uploadGroupChatAttachment,
     user,
     userSettings,
     verifyAdminUser,

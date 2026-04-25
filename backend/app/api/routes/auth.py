@@ -2,17 +2,18 @@ from datetime import timedelta
 import secrets
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import case, delete, select
 
 from app.api.deps.auth import get_current_user
 from app.core.config import settings
 from app.core.security import generate_session_token, hash_password, hash_token, verify_password, utcnow
 from app.db.session import AsyncSessionLocal
-from app.models.feature import PasswordResetOtp
+from app.models.feature import AdminGrant, PasswordResetOtp
 from app.models.language import Language
 from app.models.session_token import SessionToken
 from app.models.user import User
 from app.schemas.auth import (
+    AdminContactProfileOut,
     AuthMessageOut,
     AuthTokenOut,
     LanguageUpdateInput,
@@ -41,6 +42,17 @@ def to_user_out(user: User, *, is_admin_user: bool = False) -> UserOut:
         is_verified=user.is_verified,
         learning_language_code=user.learning_language_code,
         is_admin=is_admin_user,
+    )
+
+
+def to_admin_contact_profile_out(user: User) -> AdminContactProfileOut:
+    return AdminContactProfileOut(
+        public_user_id=str(user.id).zfill(5),
+        email=user.email,
+        full_name=user.full_name,
+        phone_number=user.phone_number,
+        address=user.address,
+        avatar_url=user.avatar_url,
     )
 
 
@@ -180,6 +192,25 @@ async def get_me(current_user: User = Depends(get_current_user)):
         admin_state = await ensure_admin_bootstrap(session, current_user)
         await session.commit()
     return to_user_out(current_user, is_admin_user=admin_state)
+
+
+@router.get("/support/admin-profile", response_model=AdminContactProfileOut)
+async def get_admin_contact_profile():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User)
+            .join(AdminGrant, AdminGrant.user_id == User.id)
+            .order_by(
+                case((User.email == "admin@vmora.local", 0), else_=1),
+                AdminGrant.created_at.asc(),
+                User.id.asc(),
+            )
+            .limit(1)
+        )
+        admin_user = result.scalar_one_or_none()
+        if admin_user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chua co admin ho tro")
+        return to_admin_contact_profile_out(admin_user)
 
 
 @router.patch("/me", response_model=UserOut)

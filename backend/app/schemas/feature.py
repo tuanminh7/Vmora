@@ -274,10 +274,21 @@ class CommunityPostInput(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     content: str = Field(min_length=1)
     language_code: str | None = Field(default=None, max_length=10)
+    image_url: str | None = Field(default=None, max_length=500000)
+
+
+class CommunityPostUpdateInput(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    content: str = Field(min_length=1)
+    image_url: str | None = Field(default=None, max_length=500000)
 
 
 class CommunityCommentInput(BaseModel):
     content: str = Field(min_length=1)
+
+
+class CommunityReactionInput(BaseModel):
+    reaction_type: str = Field(min_length=1, max_length=20)
 
 
 class CommunityReportInput(BaseModel):
@@ -288,7 +299,9 @@ class CommunityCommentOut(BaseModel):
     id: int
     post_id: int
     user_id: int
+    user_public_user_id: str
     user_name: str | None
+    user_avatar_url: str | None = None
     content: str
     created_at: str
 
@@ -296,12 +309,47 @@ class CommunityCommentOut(BaseModel):
 class CommunityPostOut(BaseModel):
     id: int
     user_id: int
+    user_public_user_id: str
     user_name: str | None
+    user_avatar_url: str | None = None
     language_code: str | None
     title: str
     content: str
+    image_url: str | None = None
     created_at: str
+    reactions: dict[str, int] = Field(default_factory=dict)
+    my_reaction: str | None = None
+    share_count: int = 0
     comments: list[CommunityCommentOut] = []
+
+
+class CommunityReactionSummaryOut(BaseModel):
+    post_id: int
+    reactions: dict[str, int] = Field(default_factory=dict)
+    my_reaction: str | None = None
+
+
+class CommunityShareSummaryOut(BaseModel):
+    post_id: int
+    share_count: int = 0
+
+
+class DirectMessageInput(BaseModel):
+    content: str = Field(min_length=1)
+
+
+class DirectMessageOut(BaseModel):
+    id: int
+    sender_user_id: int
+    sender_public_user_id: str
+    sender_name: str | None
+    sender_avatar_url: str | None = None
+    recipient_user_id: int
+    recipient_public_user_id: str
+    recipient_name: str | None
+    recipient_avatar_url: str | None = None
+    content: str
+    created_at: str
 
 
 class LeaderboardItemOut(BaseModel):
@@ -330,6 +378,13 @@ class TournamentQuestionOut(BaseModel):
     prompt: str
     options: list[dict[str, Any]] = []
     order_index: int
+    section: str | None = None
+    question_type: str = "single_choice"
+    audio_text: str | None = None
+    audio_replay_limit: int | None = None
+    passage_id: str | None = None
+    passage_title: str | None = None
+    passage_text: str | None = None
 
 
 class TournamentOut(BaseModel):
@@ -343,12 +398,26 @@ class TournamentOut(BaseModel):
     reward_description: str | None
     is_active: bool
     is_registered: bool = False
+    question_count: int = 0
+    participant_count: int = 0
+    room_status: str = "waiting"
+    starts_at: str | None = None
+    ends_at: str | None = None
+    waiting_room_opened_at: str | None = None
+    room_started_at: str | None = None
     questions: list[TournamentQuestionOut] = []
 
 
 class TournamentRegisterOut(BaseModel):
     tournament_id: int
     registered: bool
+    message: str
+
+
+class TournamentRoomStartOut(BaseModel):
+    tournament_id: int
+    room_status: str
+    room_started_at: str
     message: str
 
 
@@ -365,6 +434,8 @@ class TournamentSubmitOut(BaseModel):
     passed: bool
     reward_title: str | None
     feedback: str
+    rank: int | None = None
+    leaderboard_size: int = 0
 
 
 class TournamentLeaderboardItemOut(BaseModel):
@@ -380,9 +451,21 @@ class FriendLinkOut(BaseModel):
     id: int
     user_id: int
     friend_user_id: int
+    friend_public_user_id: str
     friend_name: str | None
+    friend_email: str
+    friend_avatar_url: str | None = None
     status: str
     created_at: str
+
+
+class CommunityUserOut(BaseModel):
+    id: int
+    public_user_id: str
+    email: str
+    full_name: str | None
+    avatar_url: str | None = None
+    learning_language_code: str | None = None
 
 
 class GroupRoomInput(BaseModel):
@@ -399,6 +482,10 @@ class GroupRoomOut(BaseModel):
     id: int
     name: str
     room_code: str
+    owner_user_id: int
+    owner_public_user_id: str
+    owner_name: str | None
+    owner_avatar_url: str | None = None
     is_private: bool
     is_owner: bool
     member_count: int
@@ -406,13 +493,21 @@ class GroupRoomOut(BaseModel):
 
 
 class GroupRoomMessageInput(BaseModel):
-    content: str = Field(min_length=1)
+    content: str = Field(default="")
+    image_url: str | None = Field(default=None, max_length=500000)
+    audio_url: str | None = Field(default=None, max_length=500000)
+    audio_name: str | None = Field(default=None, max_length=255)
 
 
 class GroupRoomMessageOut(BaseModel):
     id: int
     room_id: int
     user_id: int
+    user_public_user_id: str
     user_name: str | None
+    user_avatar_url: str | None = None
     content: str
+    image_url: str | None = None
+    audio_url: str | None = None
+    audio_name: str | None = None
     created_at: str

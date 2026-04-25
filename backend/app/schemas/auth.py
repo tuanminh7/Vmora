@@ -56,6 +56,15 @@ class UserOut(BaseModel):
     is_admin: bool = False
 
 
+class AdminContactProfileOut(BaseModel):
+    public_user_id: str
+    email: str
+    full_name: str | None
+    phone_number: str | None
+    address: str | None
+    avatar_url: str | None
+
+
 class ProfileUpdateInput(BaseModel):
     full_name: str | None = Field(default=None, max_length=255)
     phone_number: str | None = Field(default=None, max_length=32)
